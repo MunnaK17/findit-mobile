@@ -749,8 +749,8 @@ class _HomeViewState extends State<HomeView> {
                             borderRadius: BorderRadius.circular(24),
                             child: Container(
                               width: double.infinity,
-                              height: 116,
-                              padding: const EdgeInsets.all(16),
+                              constraints: const BoxConstraints(minHeight: 124),
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                               decoration: BoxDecoration(
                                 color: AppColors.cardBgNavy,
                                 borderRadius: BorderRadius.circular(24),
@@ -781,6 +781,7 @@ class _HomeViewState extends State<HomeView> {
                                       size: 18,
                                     ),
                                   ),
+                                  const SizedBox(height: 10),
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
