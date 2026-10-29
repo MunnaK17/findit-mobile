@@ -5,7 +5,7 @@ import '../core/constants/api_constants.dart';
 
 class ReportModel {
   final int id;
-  final int idUser;
+  final dynamic idUser;
   final int idCategory;
   final int? idCampus;
   final String jenisLaporan; // 'hilang' | 'temuan'
@@ -45,7 +45,7 @@ class ReportModel {
   String? get fullFotoUrl {
     if (fotoBarang == null || fotoBarang!.isEmpty) return null;
     if (fotoBarang!.startsWith('http')) return fotoBarang;
-    return "${ApiConstants.baseStorageUrl}/$fotoBarang";
+    return "https://ulrxqbvccwhcvywssjfb.supabase.co/storage/v1/object/public/reports/$fotoBarang";
   }
 
   factory ReportModel.fromJson(Map<String, dynamic> json) {

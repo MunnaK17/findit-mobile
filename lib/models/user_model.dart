@@ -1,7 +1,7 @@
 import 'campus_model.dart';
 
 class UserModel {
-  final int id;
+  final dynamic id;
   final String name;
   final String email;
   final String? nim;

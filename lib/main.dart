@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
-import 'services/api_service.dart';
+import 'services/supabase_service.dart';
 import 'views/auth/login_view.dart';
 import 'views/main_navigation_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final token = await ApiService.getToken();
-  runApp(FindITApp(initialLoggedIn: token != null));
+  await SupabaseService.init();
+  final loggedIn = SupabaseService.isLoggedIn;
+  runApp(FindITApp(initialLoggedIn: loggedIn));
 }
 
 class FindITApp extends StatelessWidget {

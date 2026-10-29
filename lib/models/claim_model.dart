@@ -4,7 +4,7 @@ import 'user_model.dart';
 class ClaimModel {
   final int id;
   final int idReport;
-  final int idUser;
+  final dynamic idUser;
   final String pesanKlaim;
   final String statusKlaim; // 'pending' | 'approved' | 'rejected'
   final String tanggalKlaim;
