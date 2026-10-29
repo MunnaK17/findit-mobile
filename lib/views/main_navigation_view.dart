@@ -19,7 +19,7 @@ class _MainNavigationViewState extends State<MainNavigationView> {
   late int _currentIndex;
 
   // 0: Home, 1: Search, 2: MyClaims, 3: Profile
-  final List<Widget> _pages = const [
+  List<Widget> get _pages => const [
     HomeView(),
     SearchView(),
     ActivityView(),
