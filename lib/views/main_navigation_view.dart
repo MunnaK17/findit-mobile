@@ -3,7 +3,7 @@ import '../core/constants/colors.dart';
 import 'home/home_view.dart';
 import 'reports/create_report_view.dart';
 import 'search/search_view.dart';
-import 'claims/my_claims_view.dart';
+import 'activity/activity_view.dart';
 import 'profile/profile_view.dart';
 
 class MainNavigationView extends StatefulWidget {
@@ -22,7 +22,7 @@ class _MainNavigationViewState extends State<MainNavigationView> {
   final List<Widget> _pages = const [
     HomeView(),
     SearchView(),
-    MyClaimsView(),
+    ActivityView(),
     ProfileView(),
   ];
 
@@ -88,8 +88,8 @@ class _MainNavigationViewState extends State<MainNavigationView> {
 
                 // 4. Claims / History
                 _buildNavItem(
-                  icon: Icons.inventory_2_rounded,
-                  unselectedIcon: Icons.inventory_2_outlined,
+                  icon: Icons.receipt_long_rounded,
+                  unselectedIcon: Icons.receipt_long_outlined,
                   isSelected: _currentIndex == 2,
                   onTap: () => _onItemTapped(2),
                 ),

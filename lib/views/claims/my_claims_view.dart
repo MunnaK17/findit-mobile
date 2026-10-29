@@ -4,7 +4,9 @@ import '../../models/claim_model.dart';
 import '../../services/claim_service.dart';
 
 class MyClaimsView extends StatefulWidget {
-  const MyClaimsView({super.key});
+  final bool embedded;
+
+  const MyClaimsView({super.key, this.embedded = false});
 
   @override
   State<MyClaimsView> createState() => _MyClaimsViewState();
@@ -57,11 +59,13 @@ class _MyClaimsViewState extends State<MyClaimsView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.appDark,
-      appBar: AppBar(
-        backgroundColor: AppColors.appDark,
-        elevation: 0,
-        title: const Text('Klaim Saya'),
-      ),
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              backgroundColor: AppColors.appDark,
+              elevation: 0,
+              title: const Text('Klaim Saya'),
+            ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.accentAmber))
           : _claims.isEmpty
