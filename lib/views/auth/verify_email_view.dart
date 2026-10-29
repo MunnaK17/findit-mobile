@@ -25,8 +25,8 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
 
   Future<void> _verify() async {
     final code = _codeController.text.trim();
-    if (code.length != 6) {
-      _snack('Masukkan 6 digit kode verifikasi', AppColors.danger);
+    if (code.length < 6 || code.length > 8) {
+      _snack('Masukkan 8 digit kode verifikasi dari email Anda', AppColors.danger);
       return;
     }
     setState(() => _isLoading = true);
@@ -104,7 +104,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Kami telah mengirim kode 6 digit ke\n${widget.email}\nMasukkan kode tersebut untuk mengaktifkan akun.',
+                'Kami telah mengirim kode 8 digit ke\n${widget.email}\nMasukkan kode tersebut untuk mengaktifkan akun.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 13, color: AppColors.slate400, height: 1.5),
               ),
@@ -112,15 +112,15 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
               TextField(
                 controller: _codeController,
                 keyboardType: TextInputType.number,
-                maxLength: 6,
+                maxLength: 8,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: 10,
+                  letterSpacing: 6,
                 ),
-                decoration: const InputDecoration(counterText: '', hintText: '------'),
+                decoration: const InputDecoration(counterText: '', hintText: '--------'),
                 onSubmitted: (_) => _verify(),
               ),
               const SizedBox(height: 20),
