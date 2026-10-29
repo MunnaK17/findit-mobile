@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
 import '../../services/auth_service.dart';
+import '../../services/supabase_service.dart';
 import '../main_navigation_view.dart';
 
 class VerifyEmailView extends StatefulWidget {
@@ -16,6 +17,13 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
   final _codeController = TextEditingController();
   bool _isLoading = false;
   int _cooldown = 0;
+  late String _activeOtp;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeOtp = SupabaseService.getOrCreateOtp(widget.email);
+  }
 
   @override
   void dispose() {
@@ -49,14 +57,25 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
     if (_cooldown > 0) return;
     final ok = await AuthService.resendVerification(widget.email);
     if (!mounted) return;
-    _snack(ok ? 'Kode baru telah dikirim ke email Anda' : 'Gagal mengirim ulang kode',
-        ok ? AppColors.success : AppColors.danger);
+    setState(() {
+      _activeOtp = SupabaseService.getOrCreateOtp(widget.email);
+    });
+    _snack(
+      ok ? 'Kode OTP baru Anda: $_activeOtp' : 'Gagal mengirim ulang kode',
+      ok ? AppColors.success : AppColors.danger,
+    );
     if (!ok) return;
-    setState(() => _cooldown = 60);
+    setState(() => _cooldown = 30);
     while (mounted && _cooldown > 0) {
       await Future.delayed(const Duration(seconds: 1));
       if (mounted) setState(() => _cooldown--);
     }
+  }
+
+  void _autoFillOtp() {
+    setState(() {
+      _codeController.text = _activeOtp;
+    });
   }
 
   void _snack(String msg, Color color) {
@@ -80,21 +99,77 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 16),
+              // Banner Kode OTP Instan (Solusi Tanpa SMTP Eksternal)
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.cardBgLight,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.bsiTeal.withValues(alpha: 0.6), width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.bsiTeal.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.mark_email_read_rounded, color: AppColors.bsiTeal, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Kode OTP Sivitas BSI Anda:',
+                            style: TextStyle(fontSize: 11, color: AppColors.slate300),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _activeOtp,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.accentAmberLight,
+                              letterSpacing: 4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: _autoFillOtp,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.bsiTeal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Isi Otomatis', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
               Center(
                 child: Container(
-                  width: 84,
-                  height: 84,
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
                     color: AppColors.cardBgLight,
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.accentAmber, width: 2),
                   ),
                   child: const Icon(Icons.mark_email_unread_outlined,
-                      size: 40, color: AppColors.accentAmber),
+                      size: 38, color: AppColors.accentAmber),
                 ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 18),
               const Text(
                 'Aktifkan Akun Anda',
                 textAlign: TextAlign.center,
@@ -102,11 +177,11 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Kami telah mengirim kode 6 digit ke\n${widget.email}\nMasukkan kode tersebut untuk mengaktifkan akun.',
+                'Kami telah membuat kode 6 digit untuk\n${widget.email}\nMasukkan kode tersebut atau ketuk "Isi Otomatis" di atas.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 13, color: AppColors.slate400, height: 1.5),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               TextField(
                 controller: _codeController,
                 keyboardType: TextInputType.number,
@@ -137,7 +212,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
               TextButton(
                 onPressed: _cooldown > 0 ? null : _resend,
                 child: Text(
-                  _cooldown > 0 ? 'Kirim ulang kode ($_cooldown dtk)' : 'Kirim ulang kode',
+                  _cooldown > 0 ? 'Kirim ulang kode ($_cooldown dtk)' : 'Kirim ulang / Buat kode baru',
                   style: TextStyle(
                     color: _cooldown > 0 ? AppColors.slate400 : AppColors.accentAmber,
                   ),
@@ -145,7 +220,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Kode berlaku 15 menit. Periksa juga folder spam.',
+                'Kode berlaku 15 menit.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: AppColors.textMuted),
               ),
