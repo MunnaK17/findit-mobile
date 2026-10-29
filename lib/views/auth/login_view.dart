@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../services/auth_service.dart';
 import '../main_navigation_view.dart';
@@ -24,6 +25,55 @@ class _LoginViewState extends State<LoginView> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _showServerConfigDialog() {
+    final ipController = TextEditingController(
+      text: ApiConstants.apiHost.replaceAll('http://', '').replaceAll('https://', ''),
+    );
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.cardBg,
+        title: const Text('Pengaturan Host Server API', style: TextStyle(color: Colors.white, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '• USB Cable: 127.0.0.1:8000 (pastikan adb reverse aktif)\n• WiFi Laptop: 192.168.1.9:8000',
+              style: TextStyle(fontSize: 12, color: AppColors.slate400, height: 1.4),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: ipController,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: 'Host API',
+                hintText: '127.0.0.1:8000',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal', style: TextStyle(color: AppColors.slate400)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              ApiConstants.setHost(ipController.text.trim());
+              Navigator.pop(context);
+              setState(() {});
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Host diubah menjadi: ${ApiConstants.apiHost}')),
+              );
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleLogin() async {
@@ -73,6 +123,17 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.appDark,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.dns_outlined, color: AppColors.slate400, size: 20),
+            tooltip: 'Pengaturan Server API',
+            onPressed: _showServerConfigDialog,
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiConstants {
   static String? _customHost;
@@ -7,10 +7,8 @@ class ApiConstants {
     if (_customHost != null && _customHost!.isNotEmpty) {
       return _customHost!;
     }
-    if (kIsWeb) {
-      return "http://127.0.0.1:8000";
-    }
-    return "http://172.20.10.2:8000";
+    // 127.0.0.1:8000 bekerja langsung di Web dan di Android via USB (adb reverse tcp:8000 tcp:8000)
+    return "http://127.0.0.1:8000";
   }
 
   static void setHost(String newHost) {
