@@ -133,7 +133,51 @@ class _HomeViewState extends State<HomeView> {
 
         return true;
       }).toList();
+
+      // Recalculate stats for the selected campus
+      int lost = 0;
+      int found = 0;
+      int completed = 0;
+
+      for (var r in _allReports) {
+        if (_selectedCampus != null && r.idCampus != _selectedCampus!.id) {
+          continue;
+        }
+        if (r.status == 'completed') {
+          completed++;
+        }
+        if (r.isHilang) {
+          lost++;
+        } else if (r.isTemuan) {
+          found++;
+        }
+      }
+
+      _lostCount = lost;
+      _foundCount = found;
+      _completedCount = completed;
     });
+  }
+
+  void _selectCampus(CampusModel? campus) {
+    setState(() {
+      _selectedCampus = campus;
+      _applyFilters();
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            campus != null
+                ? "Menampilkan barang di ${campus.namaKampus}"
+                : "Menampilkan barang di Semua Cabang UBSI",
+          ),
+          duration: const Duration(seconds: 2),
+          backgroundColor: AppColors.cardBgLight,
+        ),
+      );
+    }
   }
 
   void _setFilter(String filter) {
@@ -191,11 +235,8 @@ class _HomeViewState extends State<HomeView> {
                         if (_selectedCampus != null)
                           GestureDetector(
                             onTap: () {
-                              setState(() {
-                                _selectedCampus = null;
-                                _applyFilters();
-                              });
                               Navigator.pop(context);
+                              _selectCampus(null);
                             },
                             child: const Text(
                               "Semua Cabang",
@@ -244,11 +285,8 @@ class _HomeViewState extends State<HomeView> {
                                   ? const Icon(Icons.check_circle_rounded, color: AppColors.accentAmber)
                                   : null,
                               onTap: () {
-                                setState(() {
-                                  _selectedCampus = null;
-                                  _applyFilters();
-                                });
                                 Navigator.pop(context);
+                                _selectCampus(null);
                               },
                             );
                           }
@@ -287,11 +325,8 @@ class _HomeViewState extends State<HomeView> {
                                 ? const Icon(Icons.check_circle_rounded, color: AppColors.accentAmber)
                                 : null,
                             onTap: () {
-                              setState(() {
-                                _selectedCampus = campus;
-                                _applyFilters();
-                              });
                               Navigator.pop(context);
+                              _selectCampus(campus);
                             },
                           );
                         },
@@ -395,55 +430,59 @@ class _HomeViewState extends State<HomeView> {
                           ),
 
                           // Interactive Affiliate Pill: Campus Branch Selector
-                          GestureDetector(
-                            onTap: _showCampusSelector,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: AppColors.cardBg.withValues(alpha: 0.95),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: _selectedCampus != null ? AppColors.accentAmber : AppColors.cardBorder,
-                                  width: _selectedCampus != null ? 1.5 : 1,
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: _showCampusSelector,
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardBg.withValues(alpha: 0.95),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: _selectedCampus != null ? AppColors.accentAmber : AppColors.cardBorder,
+                                    width: _selectedCampus != null ? 1.5 : 1,
+                                  ),
                                 ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 18,
-                                    height: 18,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.bsiTeal,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      _selectedCampus?.kodeKampus ?? "BSI",
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 8,
-                                        fontWeight: FontWeight.w900,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 18,
+                                      height: 18,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.bsiTeal,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        _selectedCampus?.kodeKampus ?? "BSI",
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.w900,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  ConstrainedBox(
-                                    constraints: const BoxConstraints(maxWidth: 120),
-                                    child: Text(
-                                      _selectedCampus?.namaKampus.replaceAll('UBSI Kampus ', '') ?? "SEMUA CABANG",
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: _selectedCampus != null ? AppColors.accentAmber : AppColors.slate300,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 0.5,
+                                    const SizedBox(width: 6),
+                                    ConstrainedBox(
+                                      constraints: const BoxConstraints(maxWidth: 120),
+                                      child: Text(
+                                        _selectedCampus?.namaKampus.replaceAll('UBSI Kampus ', '') ?? "SEMUA CABANG",
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: _selectedCampus != null ? AppColors.accentAmber : AppColors.slate300,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.5,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 2),
-                                  const Icon(Icons.arrow_drop_down, color: AppColors.slate400, size: 16),
-                                ],
+                                    const SizedBox(width: 2),
+                                    const Icon(Icons.arrow_drop_down, color: AppColors.slate400, size: 16),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
