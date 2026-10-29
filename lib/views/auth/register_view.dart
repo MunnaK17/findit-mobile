@@ -4,6 +4,7 @@ import '../../models/campus_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/report_service.dart';
 import '../../core/constants/prodi_options.dart';
+import '../main_navigation_view.dart';
 import 'verify_email_view.dart';
 
 class RegisterView extends StatefulWidget {
@@ -99,10 +100,18 @@ class _RegisterViewState extends State<RegisterView> {
     if (!mounted) return;
 
     if (res['success'] == true) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => VerifyEmailView(email: res['email'])),
-      );
+      if (res['requires_verification'] == false) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MainNavigationView()),
+          (route) => false,
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => VerifyEmailView(email: res['email'])),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
