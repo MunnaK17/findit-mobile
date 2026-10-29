@@ -150,6 +150,8 @@ class _HomeViewState extends State<HomeView> {
   void _showCampusSelector() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
       backgroundColor: AppColors.cardBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -212,10 +214,7 @@ class _HomeViewState extends State<HomeView> {
                       style: TextStyle(fontSize: 12, color: AppColors.slate400),
                     ),
                     const SizedBox(height: 16),
-                    ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height * 0.5,
-                      ),
+                    Flexible(
                       child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: _campuses.length + 1,
