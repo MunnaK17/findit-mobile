@@ -58,4 +58,15 @@ class AppColors {
   static const Color slate400 = Color(0xFF94A3B8);
   static const Color slate900 = Color(0xFF0F172A);
   static const Color slate950 = Color(0xFF020617);
+
+  // Light Section Colors (Alternating Navy - White - Navy - White like web)
+  static const Color lightBg = Color(0xFFF8FAFC); // Clean crisp off-white (Slate 50)
+  static const Color lightSurface = Colors.white;
+  static const Color lightCardBg = Colors.white;
+  static const Color lightBorder = Color(0xFFE2E8F0); // Slate 200
+  static const Color lightBorderSubtle = Color(0xFFF1F5F9); // Slate 100
+  static const Color lightChipBg = Color(0xFFF1F5F9);
+  static const Color lightTextPrimary = Color(0xFF0F172A); // Dark Slate 900
+  static const Color lightTextSecondary = Color(0xFF475569); // Slate 600
+  static const Color lightTextMuted = Color(0xFF64748B); // Slate 500
 }
