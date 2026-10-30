@@ -50,4 +50,12 @@ class AuthService {
   static Future<bool> logout() async {
     return await SupabaseService.logout();
   }
+
+  static Future<Map<String, dynamic>> updatePassword(String newPassword) async {
+    return await SupabaseService.updatePassword(newPassword);
+  }
+
+  static Future<Map<String, dynamic>> updatePhone(String phone) async {
+    return await SupabaseService.updatePhone(phone);
+  }
 }

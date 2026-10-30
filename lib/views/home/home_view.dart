@@ -1093,14 +1093,20 @@ class _HomeViewState extends State<HomeView> {
                                 ),
                               ),
                             )
-                          : SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 80),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) => ReportCard(
-                                    report: _filteredReports[index],
+                          : SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 84),
+                                child: SizedBox(
+                                  height: 282,
+                                  child: ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                                    itemCount: _filteredReports.length,
+                                    separatorBuilder: (_, __) => const SizedBox(width: 14),
+                                    itemBuilder: (context, index) => ReportBoxCard(
+                                      report: _filteredReports[index],
+                                    ),
                                   ),
-                                  childCount: _filteredReports.length,
                                 ),
                               ),
                             ),

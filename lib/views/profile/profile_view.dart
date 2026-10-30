@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../models/user_model.dart';
 import '../../models/report_model.dart';
@@ -89,49 +88,466 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
-  void _showServerConfigDialog() {
-    final ipController = TextEditingController(text: ApiConstants.apiHost);
-    showDialog(
+  void _showEditPhoneDialog() {
+    final phoneController = TextEditingController(text: _user?.phone ?? '');
+    final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
+
+    showModalBottomSheet(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardBg,
-        title: const Text('Pengaturan Host Server API', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Gunakan IP WiFi laptop jika menjalankan di HP fisik (misal: 172.20.10.2:8000), atau 127.0.0.1:8000 untuk Web/Chrome.',
-              style: TextStyle(fontSize: 12, color: AppColors.slate400),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: ipController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: 'Host API',
-                hintText: '172.20.10.2:8000',
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+              decoration: const BoxDecoration(
+                color: AppColors.cardBg,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black54,
+                    blurRadius: 20,
+                    offset: Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBorder,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentAmber.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.phone_android_rounded,
+                            color: AppColors.accentAmber,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ubah Nomor HP / WhatsApp',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Nomor kontak untuk koordinasi barang',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.slate400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+                    TextFormField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      autofocus: true,
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      decoration: InputDecoration(
+                        labelText: 'Nomor WhatsApp / HP',
+                        hintText: 'Contoh: 085891565501',
+                        prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.accentAmber),
+                        filled: true,
+                        fillColor: AppColors.cardBgLight,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: AppColors.cardBorder),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: AppColors.cardBorder),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: AppColors.accentAmber, width: 1.5),
+                        ),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Nomor HP tidak boleh kosong';
+                        }
+                        final clean = val.trim();
+                        if (clean.length < 8) {
+                          return 'Nomor HP minimal 8 karakter';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: isSaving ? null : () => Navigator.pop(ctx),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: const BorderSide(color: AppColors.cardBorder),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text('Batal', style: TextStyle(color: AppColors.slate300)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: isSaving
+                                ? null
+                                : () async {
+                                    if (!formKey.currentState!.validate()) return;
+                                    setModalState(() => isSaving = true);
+                                    final messenger = ScaffoldMessenger.of(context);
+                                    final navigator = Navigator.of(ctx);
+                                    final res = await AuthService.updatePhone(phoneController.text.trim());
+                                    if (!mounted) return;
+                                    setModalState(() => isSaving = false);
+                                    if (res['success'] == true) {
+                                      navigator.pop();
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Nomor HP berhasil diperbarui!'),
+                                          backgroundColor: AppColors.success,
+                                        ),
+                                      );
+                                      _loadProfile();
+                                    } else {
+                                      messenger.showSnackBar(
+                                        SnackBar(
+                                          content: Text(res['message'] ?? 'Gagal memperbarui nomor HP'),
+                                          backgroundColor: AppColors.danger,
+                                        ),
+                                      );
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.accentAmber,
+                              foregroundColor: AppColors.appDark,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: isSaving
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.appDark,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Simpan Nomor HP',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal', style: TextStyle(color: AppColors.slate400)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              ApiConstants.setHost(ipController.text.trim());
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Host diubah menjadi: ${ApiConstants.apiHost}')),
-              );
-              _loadProfile();
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog() {
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+              decoration: const BoxDecoration(
+                color: AppColors.cardBg,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black54,
+                    blurRadius: 20,
+                    offset: Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBorder,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentAmber.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.lock_reset_rounded,
+                            color: AppColors.accentAmber,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ganti Kata Sandi',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Gunakan minimal 6 karakter',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.slate400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+                    TextFormField(
+                      controller: newPasswordController,
+                      obscureText: obscureNew,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Kata Sandi Baru',
+                        hintText: 'Minimal 6 karakter',
+                        prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.accentAmber),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            color: AppColors.slate400,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setModalState(() => obscureNew = !obscureNew);
+                          },
+                        ),
+                        filled: true,
+                        fillColor: AppColors.cardBgLight,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: AppColors.cardBorder),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: AppColors.cardBorder),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: AppColors.accentAmber, width: 1.5),
+                        ),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.isEmpty) {
+                          return 'Kata sandi baru tidak boleh kosong';
+                        }
+                        if (val.length < 6) {
+                          return 'Kata sandi minimal 6 karakter';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: confirmPasswordController,
+                      obscureText: obscureConfirm,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Konfirmasi Kata Sandi Baru',
+                        hintText: 'Ulangi kata sandi baru',
+                        prefixIcon: const Icon(Icons.lock_clock_outlined, color: AppColors.accentAmber),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            color: AppColors.slate400,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setModalState(() => obscureConfirm = !obscureConfirm);
+                          },
+                        ),
+                        filled: true,
+                        fillColor: AppColors.cardBgLight,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: AppColors.cardBorder),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: AppColors.cardBorder),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: AppColors.accentAmber, width: 1.5),
+                        ),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.isEmpty) {
+                          return 'Konfirmasi kata sandi tidak boleh kosong';
+                        }
+                        if (val != newPasswordController.text) {
+                          return 'Konfirmasi kata sandi tidak cocok';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: isSaving ? null : () => Navigator.pop(ctx),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: const BorderSide(color: AppColors.cardBorder),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text('Batal', style: TextStyle(color: AppColors.slate300)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: isSaving
+                                ? null
+                                : () async {
+                                    if (!formKey.currentState!.validate()) return;
+                                    setModalState(() => isSaving = true);
+                                    final messenger = ScaffoldMessenger.of(context);
+                                    final navigator = Navigator.of(ctx);
+                                    final res = await AuthService.updatePassword(newPasswordController.text);
+                                    if (!mounted) return;
+                                    setModalState(() => isSaving = false);
+                                    if (res['success'] == true) {
+                                      navigator.pop();
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Kata sandi berhasil diperbarui!'),
+                                          backgroundColor: AppColors.success,
+                                        ),
+                                      );
+                                    } else {
+                                      messenger.showSnackBar(
+                                        SnackBar(
+                                          content: Text(res['message'] ?? 'Gagal memperbarui kata sandi'),
+                                          backgroundColor: AppColors.danger,
+                                        ),
+                                      );
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.accentAmber,
+                              foregroundColor: AppColors.appDark,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: isSaving
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.appDark,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Simpan Kata Sandi',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -193,14 +609,6 @@ class _ProfileViewState extends State<ProfileView> {
                   },
                   child: const Text('Masuk ke Akun'),
                 ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: _showServerConfigDialog,
-                  child: const Text(
-                    'Konfigurasi IP Server API',
-                    style: TextStyle(color: AppColors.accentAmber),
-                  ),
-                ),
               ],
             ),
           ),
@@ -213,13 +621,6 @@ class _ProfileViewState extends State<ProfileView> {
       appBar: AppBar(
         backgroundColor: AppColors.appDark,
         title: const Text('Profil Pengguna'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: AppColors.slate300),
-            onPressed: _showServerConfigDialog,
-            tooltip: 'Pengaturan Server API',
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -330,7 +731,7 @@ class _ProfileViewState extends State<ProfileView> {
                   const Divider(color: AppColors.cardBorder, height: 1),
                   const SizedBox(height: 16),
 
-                  // User Info Detail Items (Campus, NIM/NIP, Prodi)
+                  // User Info Detail Items (Campus, NIM/NIP, Prodi, Phone)
                   if (_user!.campus != null) ...[
                     _buildInfoRow(
                       icon: Icons.account_balance_outlined,
@@ -366,13 +767,20 @@ class _ProfileViewState extends State<ProfileView> {
                     const SizedBox(height: 10),
                   ],
 
-                  if (_user!.phone != null && _user!.phone!.isNotEmpty) ...[
-                    _buildInfoRow(
-                      icon: Icons.phone_outlined,
-                      label: 'Kontak WhatsApp',
-                      value: _user!.phone!,
+                  // Kontak WhatsApp row (interactive)
+                  _buildInfoRow(
+                    icon: Icons.phone_outlined,
+                    label: 'Kontak WhatsApp',
+                    value: (_user!.phone != null && _user!.phone!.isNotEmpty)
+                        ? _user!.phone!
+                        : 'Belum diatur (Ketuk untuk isi)',
+                    trailing: const Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: AppColors.accentAmber,
                     ),
-                  ],
+                    onTap: _showEditPhoneDialog,
+                  ),
                 ],
               ),
             ),
@@ -403,11 +811,22 @@ class _ProfileViewState extends State<ProfileView> {
                   ),
                   const Divider(height: 1, color: AppColors.cardBorder),
                   ListTile(
-                    leading: const Icon(Icons.dns_outlined, color: AppColors.accentAmber),
-                    title: const Text('Pengaturan Host Server API', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                    subtitle: Text(ApiConstants.apiHost, style: const TextStyle(fontSize: 12, color: AppColors.slate400)),
+                    leading: const Icon(Icons.phone_outlined, color: AppColors.accentAmber),
+                    title: const Text('Ubah Nomor HP / WhatsApp', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    subtitle: Text(
+                      _user!.phone?.isNotEmpty == true ? _user!.phone! : 'Atur nomor kontak aktif',
+                      style: const TextStyle(fontSize: 12, color: AppColors.slate400),
+                    ),
                     trailing: const Icon(Icons.chevron_right, color: AppColors.slate400),
-                    onTap: _showServerConfigDialog,
+                    onTap: _showEditPhoneDialog,
+                  ),
+                  const Divider(height: 1, color: AppColors.cardBorder),
+                  ListTile(
+                    leading: const Icon(Icons.lock_outline_rounded, color: AppColors.accentAmber),
+                    title: const Text('Ganti Kata Sandi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Perbarui keamanan kata sandi akun', style: TextStyle(fontSize: 12, color: AppColors.slate400)),
+                    trailing: const Icon(Icons.chevron_right, color: AppColors.slate400),
+                    onTap: _showChangePasswordDialog,
                   ),
                   const Divider(height: 1, color: AppColors.cardBorder),
                   ListTile(
@@ -449,11 +868,11 @@ class _ProfileViewState extends State<ProfileView> {
                 child: CircularProgressIndicator(color: AppColors.accentAmber),
               )
             else if (_myReports.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(28),
+              const Padding(
+                padding: EdgeInsets.all(28),
                 child: Text(
                   'Anda belum membuat laporan apapun.',
-                  style: const TextStyle(color: AppColors.slate400, fontSize: 13),
+                  style: TextStyle(color: AppColors.slate400, fontSize: 13),
                 ),
               )
             else
@@ -549,8 +968,10 @@ class _ProfileViewState extends State<ProfileView> {
     required String label,
     required String value,
     Color? badgeColor,
+    Widget? trailing,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    final content = Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.cardBgLight,
@@ -582,8 +1003,21 @@ class _ProfileViewState extends State<ProfileView> {
               ),
             ),
           ),
+          if (trailing != null) ...[
+            const SizedBox(width: 8),
+            trailing,
+          ],
         ],
       ),
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: content,
+      );
+    }
+    return content;
   }
 }

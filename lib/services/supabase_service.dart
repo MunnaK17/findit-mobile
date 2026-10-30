@@ -199,6 +199,45 @@ class SupabaseService {
     }
   }
 
+  static Future<Map<String, dynamic>> updatePassword(String newPassword) async {
+    try {
+      final res = await client.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+      if (res.user != null) {
+        return {'success': true, 'message': 'Kata sandi berhasil diperbarui'};
+      }
+      return {'success': false, 'message': 'Gagal memperbarui kata sandi'};
+    } on AuthException catch (e) {
+      return {'success': false, 'message': e.message};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updatePhone(String phone) async {
+    final user = client.auth.currentUser;
+    if (user == null) {
+      return {'success': false, 'message': 'Sesi login tidak ditemukan'};
+    }
+    final cleanPhone = phone.trim();
+    try {
+      await client.from('profiles').update({
+        'phone': cleanPhone,
+      }).eq('id', user.id);
+
+      try {
+        await client.auth.updateUser(
+          UserAttributes(data: {'phone': cleanPhone}),
+        );
+      } catch (_) {}
+
+      return {'success': true, 'message': 'Nomor HP berhasil disimpan'};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal memperbarui nomor HP: $e'};
+    }
+  }
+
   // ================= DATA SERVICES =================
 
   static Future<List<CampusModel>> getCampuses() async {
