@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 import 'services/supabase_service.dart';
 import 'views/auth/login_view.dart';
 import 'views/main_navigation_view.dart';
@@ -8,21 +9,61 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SupabaseService.init();
   final loggedIn = SupabaseService.isLoggedIn;
-  runApp(FindITApp(initialLoggedIn: loggedIn));
+  final themeProvider = ThemeProvider();
+  runApp(FindITApp(initialLoggedIn: loggedIn, themeProvider: themeProvider));
 }
 
 class FindITApp extends StatelessWidget {
   final bool initialLoggedIn;
+  final ThemeProvider? themeProvider;
 
-  const FindITApp({super.key, required this.initialLoggedIn});
+  const FindITApp({
+    super.key,
+    required this.initialLoggedIn,
+    this.themeProvider,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'FindIT - Lost & Found Kampus',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      home: initialLoggedIn ? const MainNavigationView() : const LoginView(),
+    final provider = themeProvider ?? ThemeProvider();
+    return ListenableBuilder(
+      listenable: provider,
+      builder: (context, _) {
+        return _ThemeScope(
+          themeProvider: provider,
+          child: MaterialApp(
+            title: 'FindIT - Lost & Found Kampus',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: provider.themeMode,
+            home: initialLoggedIn ? const MainNavigationView() : const LoginView(),
+          ),
+        );
+      },
     );
+  }
+}
+
+/// InheritedWidget to access [ThemeProvider] from anywhere in the tree
+/// without adding a dependency on the provider package.
+class _ThemeScope extends InheritedWidget {
+  final ThemeProvider themeProvider;
+
+  const _ThemeScope({
+    required this.themeProvider,
+    required super.child,
+  });
+
+  @override
+  bool updateShouldNotify(_ThemeScope oldWidget) => true;
+}
+
+/// Extension on [BuildContext] to easily access [ThemeProvider].
+extension ThemeProviderX on BuildContext {
+  ThemeProvider get themeProvider {
+    final scope = dependOnInheritedWidgetOfExactType<_ThemeScope>();
+    assert(scope != null, 'No _ThemeScope found. Wrap your root widget with _ThemeScope.');
+    return scope!.themeProvider;
   }
 }

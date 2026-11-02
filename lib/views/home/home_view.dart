@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
+import '../../main.dart';
 import '../../models/campus_model.dart';
 import '../../models/category_model.dart';
 import '../../models/report_model.dart';
@@ -168,6 +169,7 @@ class _HomeViewState extends State<HomeView> {
       _applyFilters();
     });
     if (mounted) {
+      final c = FinditColors.of(context);
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -177,7 +179,7 @@ class _HomeViewState extends State<HomeView> {
                 : "Menampilkan barang di Semua Cabang UBSI",
           ),
           duration: const Duration(seconds: 2),
-          backgroundColor: AppColors.cardBgLight,
+          backgroundColor: c.snackbarBg,
         ),
       );
     }
@@ -195,15 +197,18 @@ class _HomeViewState extends State<HomeView> {
   }
 
   void _showCampusSelector() {
+    final c = FinditColors.of(context);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
-      backgroundColor: AppColors.cardBg,
+      backgroundColor: c.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
+        final cs = FinditColors.of(context);
         return StatefulBuilder(
           builder: (context, setModalState) {
             return SafeArea(
@@ -218,7 +223,7 @@ class _HomeViewState extends State<HomeView> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: AppColors.cardBorder,
+                          color: cs.cardBorder,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -227,12 +232,12 @@ class _HomeViewState extends State<HomeView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           "Pilih Cabang Kampus UBSI",
                           style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                            color: cs.textPrimary,
                           ),
                         ),
                         if (_selectedCampus != null)
@@ -253,9 +258,9 @@ class _HomeViewState extends State<HomeView> {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       "Pilih salah satu dari 11 cabang kampus UBSI",
-                      style: TextStyle(fontSize: 12, color: AppColors.slate400),
+                      style: TextStyle(fontSize: 12, color: cs.textMuted),
                     ),
                     const SizedBox(height: 14),
 
@@ -263,7 +268,7 @@ class _HomeViewState extends State<HomeView> {
                     Expanded(
                       child: ListView.separated(
                         itemCount: _campuses.length + 1,
-                        separatorBuilder: (_, __) => const Divider(color: AppColors.cardBorderLight, height: 1),
+                        separatorBuilder: (_, __) => Divider(color: cs.cardBorderLight, height: 1),
                         itemBuilder: (context, index) {
                           if (index == 0) {
                             final isSelected = _selectedCampus == null;
@@ -271,24 +276,24 @@ class _HomeViewState extends State<HomeView> {
                               contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               leading: CircleAvatar(
                                 radius: 18,
-                                backgroundColor: isSelected ? AppColors.accentAmber : AppColors.cardBgLight,
+                                backgroundColor: isSelected ? AppColors.accentAmber : cs.cardBgLight,
                                 child: Icon(
                                   Icons.apartment_rounded,
                                   size: 18,
-                                  color: isSelected ? AppColors.slate950 : AppColors.slate300,
+                                  color: isSelected ? AppColors.slate950 : cs.slate300Adaptive,
                                 ),
                               ),
                               title: Text(
                                 "Semua Cabang UBSI",
                                 style: TextStyle(
-                                  color: isSelected ? AppColors.accentAmber : Colors.white,
+                                  color: isSelected ? AppColors.accentAmber : cs.textPrimary,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 14,
                                 ),
                               ),
-                              subtitle: const Text(
+                              subtitle: Text(
                                 "Tampilkan seluruh laporan di 11 kampus",
-                                style: TextStyle(color: AppColors.slate400, fontSize: 11),
+                                style: TextStyle(color: cs.textMuted, fontSize: 11),
                               ),
                               trailing: isSelected
                                   ? const Icon(Icons.check_circle_rounded, color: AppColors.accentAmber)
@@ -307,7 +312,7 @@ class _HomeViewState extends State<HomeView> {
                             contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             leading: CircleAvatar(
                               radius: 18,
-                              backgroundColor: isSelected ? AppColors.accentAmber : AppColors.cardBgLight,
+                              backgroundColor: isSelected ? AppColors.accentAmber : cs.cardBgLight,
                               child: Text(
                                 campus.kodeKampus,
                                 style: TextStyle(
@@ -320,7 +325,7 @@ class _HomeViewState extends State<HomeView> {
                             title: Text(
                               campus.namaKampus,
                               style: TextStyle(
-                                color: isSelected ? AppColors.accentAmber : Colors.white,
+                                color: isSelected ? AppColors.accentAmber : cs.textPrimary,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 14,
                               ),
@@ -329,7 +334,7 @@ class _HomeViewState extends State<HomeView> {
                               "${campus.kota} • ${campus.alamat ?? ''}",
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: AppColors.slate400, fontSize: 11),
+                              style: TextStyle(color: cs.textMuted, fontSize: 11),
                             ),
                             trailing: isSelected
                                 ? const Icon(Icons.check_circle_rounded, color: AppColors.accentAmber)
@@ -358,42 +363,48 @@ class _HomeViewState extends State<HomeView> {
         ? _currentUser!.name.split(' ').first
         : 'Sobat BSI';
 
+    final c = FinditColors.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.appDark, // Base Dark Navy
+      backgroundColor: c.scaffoldBg,
       body: Stack(
         children: [
           SafeArea(
             child: RefreshIndicator(
               onRefresh: _loadAllData,
               color: AppColors.accentAmber,
-              backgroundColor: AppColors.cardBg,
+              backgroundColor: c.cardBg,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // ==========================================
-                    // 1. SECTION 1: HERO SECTION (BIRU NAVY)
-                    // ==========================================
-                    _buildHeroSection(userName),
+                    // 1. HERO SECTION
+                    _buildHeroSection(userName, c),
 
-                    // ==========================================
-                    // 2. SECTION 2: FEED LAPORAN (PUTIH / LIGHT)
-                    // ==========================================
-                    _buildWhiteFeedSection(),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Divider(color: c.divider, height: 1),
+                    ),
 
-                    // ==========================================
-                    // 3. SECTION 3: KISAH SUKSES (BIRU NAVY)
-                    // ==========================================
-                    _buildNavyCommunitySection(),
+                    // 2. FEED LAPORAN SECTION
+                    _buildFeedSection(c),
 
-                    // ==========================================
-                    // 4. SECTION 4: ALUR & PANDUAN (PUTIH / LIGHT)
-                    // ==========================================
-                    _buildWhiteGuideSection(),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Divider(color: c.divider, height: 1),
+                    ),
 
-                    // Bottom Spacer for BottomNavigationBar & Chatbot FAB
-                    const SizedBox(height: 96),
+                    // 3. KISAH SUKSES KOMUNITAS SECTION
+                    _buildCommunitySection(c),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Divider(color: c.divider, height: 1),
+                    ),
+
+                    // 4. ALUR & PANDUAN SECTION
+                    _buildGuideSection(c),
                   ],
                 ),
               ),
@@ -453,11 +464,11 @@ class _HomeViewState extends State<HomeView> {
   }
 
   // =========================================================================
-  // SECTION 1: HERO SECTION (BIRU NAVY)
+  // SECTION 1: HERO SECTION (Adaptive Dark / Light — No Belang!)
   // =========================================================================
-  Widget _buildHeroSection(String userName) {
+  Widget _buildHeroSection(String userName, FinditColors c) {
     return Container(
-      color: AppColors.appDark,
+      color: c.heroSectionBg,
       child: Stack(
         children: [
           // Ambient Radial Glows (Amber & Blue)
@@ -471,7 +482,7 @@ class _HomeViewState extends State<HomeView> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF2563EB).withValues(alpha: 0.28),
+                    const Color(0xFF2563EB).withValues(alpha: c.isDark ? 0.25 : 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -488,7 +499,7 @@ class _HomeViewState extends State<HomeView> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.accentAmber.withValues(alpha: 0.16),
+                    AppColors.accentAmber.withValues(alpha: c.isDark ? 0.14 : 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -501,29 +512,29 @@ class _HomeViewState extends State<HomeView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Bar: Brand Find.It, Campus Selector Pill, Notification Bell
+                // Top Bar: Brand Find.It, Campus Selector Pill, Theme Toggle & Notification
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Brand Logo
                     RichText(
-                      text: const TextSpan(
+                      text: TextSpan(
                         children: [
                           TextSpan(
                             text: "Find.",
                             style: TextStyle(
                               fontSize: 27,
                               fontWeight: FontWeight.w900,
-                              color: Colors.white,
+                              color: c.textPrimary,
                               letterSpacing: -0.5,
                             ),
                           ),
-                          TextSpan(
+                          const TextSpan(
                             text: "It",
                             style: TextStyle(
                               fontSize: 27,
                               fontWeight: FontWeight.w900,
-                              color: AppColors.accentAmberLight,
+                              color: AppColors.accentAmber,
                               letterSpacing: -0.5,
                             ),
                           ),
@@ -540,10 +551,10 @@ class _HomeViewState extends State<HomeView> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: AppColors.cardBg.withValues(alpha: 0.95),
+                            color: c.cardBg,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: _selectedCampus != null ? AppColors.accentAmber : AppColors.cardBorder,
+                              color: _selectedCampus != null ? AppColors.accentAmber : c.cardBorder,
                               width: _selectedCampus != null ? 1.5 : 1,
                             ),
                           ),
@@ -569,12 +580,12 @@ class _HomeViewState extends State<HomeView> {
                               ),
                               const SizedBox(width: 6),
                               ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 110),
+                                constraints: const BoxConstraints(maxWidth: 96),
                                 child: Text(
                                   _selectedCampus?.namaKampus.replaceAll('UBSI Kampus ', '') ?? "SEMUA CABANG",
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    color: _selectedCampus != null ? AppColors.accentAmber : AppColors.slate300,
+                                    color: _selectedCampus != null ? AppColors.accentAmber : c.textSecondary,
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.4,
@@ -582,53 +593,82 @@ class _HomeViewState extends State<HomeView> {
                                 ),
                               ),
                               const SizedBox(width: 2),
-                              const Icon(Icons.arrow_drop_down, color: AppColors.slate400, size: 16),
+                              Icon(Icons.arrow_drop_down, color: c.textMuted, size: 16),
                             ],
                           ),
                         ),
                       ),
                     ),
 
-                    // Notification Icon
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: AppColors.cardBg.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(19),
-                        border: Border.all(color: AppColors.cardBorder),
-                      ),
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        icon: const Icon(
-                          Icons.notifications_none_rounded,
-                          color: AppColors.accentAmberLight,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Belum ada notifikasi baru"),
-                              duration: Duration(seconds: 2),
+                    // Action Icons: Theme Toggle (Night/Light Mode) + Notification
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Night / Light Mode Toggle Button
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: c.cardBg,
+                            borderRadius: BorderRadius.circular(19),
+                            border: Border.all(color: c.cardBorder),
+                          ),
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            tooltip: c.isDark ? "Ubah ke Light Mode" : "Ubah ke Night Mode",
+                            icon: Icon(
+                              c.isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                              color: c.isDark ? AppColors.accentAmberLight : AppColors.accentAmberDark,
+                              size: 19,
                             ),
-                          );
-                        },
-                      ),
+                            onPressed: () {
+                              context.themeProvider.toggleTheme();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Notification Icon
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: c.cardBg,
+                            borderRadius: BorderRadius.circular(19),
+                            border: Border.all(color: c.cardBorder),
+                          ),
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            icon: Icon(
+                              Icons.notifications_none_rounded,
+                              color: c.isDark ? AppColors.accentAmberLight : c.textPrimary,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Belum ada notifikasi baru"),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
 
                 const SizedBox(height: 18),
 
-                // Greeting & Hero Title (matching web "Temukan Barangmu yang Hilang")
+                // Greeting & Hero Title
                 Row(
                   children: [
                     Text(
                       "Halo, $userName!",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: c.textPrimary,
                         letterSpacing: -0.4,
                       ),
                     ),
@@ -638,8 +678,8 @@ class _HomeViewState extends State<HomeView> {
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: _currentUser!.isStaff
-                              ? AppColors.bsiTeal.withValues(alpha: 0.2)
-                              : AppColors.accentAmber.withValues(alpha: 0.2),
+                              ? AppColors.bsiTeal.withValues(alpha: 0.18)
+                              : AppColors.accentAmber.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: _currentUser!.isStaff ? AppColors.bsiTeal : AppColors.accentAmber,
@@ -649,7 +689,7 @@ class _HomeViewState extends State<HomeView> {
                         child: Text(
                           _currentUser!.roleLabel,
                           style: TextStyle(
-                            color: _currentUser!.isStaff ? AppColors.bsiTeal : AppColors.accentAmber,
+                            color: _currentUser!.isStaff ? AppColors.bsiTeal : AppColors.accentAmberDark,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
@@ -660,18 +700,18 @@ class _HomeViewState extends State<HomeView> {
                 ),
                 const SizedBox(height: 6),
                 RichText(
-                  text: const TextSpan(
+                  text: TextSpan(
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: c.textPrimary,
                       height: 1.35,
                     ),
-                    children: [
+                    children: const [
                       TextSpan(text: "Temukan Barangmu yang "),
                       TextSpan(
                         text: "Hilang",
-                        style: TextStyle(color: AppColors.accentAmberLight),
+                        style: TextStyle(color: AppColors.accentAmber),
                       ),
                       TextSpan(text: " & Pulihkan Kepercayaan"),
                     ],
@@ -682,32 +722,41 @@ class _HomeViewState extends State<HomeView> {
                   _selectedCampus != null
                       ? "Menampilkan laporan di ${_selectedCampus!.namaKampus}."
                       : "Platform Lost & Found terpadu seluruh 11 cabang UBSI.",
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.slate400,
+                    color: c.textMuted,
                   ),
                 ),
 
                 const SizedBox(height: 16),
 
-                // Search Bar (Navy Input)
+                // Search Bar
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.cardBgLight.withValues(alpha: 0.95),
+                    color: c.inputFill,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.cardBorder),
+                    border: Border.all(color: c.inputBorder),
+                    boxShadow: c.isDark
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                   ),
                   child: TextField(
                     controller: _searchController,
-                    style: const TextStyle(color: Colors.white, fontSize: 13.5),
+                    style: TextStyle(color: c.inputText, fontSize: 13.5),
                     onChanged: (_) => _applyFilters(),
                     decoration: InputDecoration(
                       hintText: "Cari nama barang, ciri-ciri, atau lokasi...",
-                      hintStyle: const TextStyle(color: AppColors.slate400, fontSize: 12.5),
-                      prefixIcon: const Icon(Icons.search_rounded, color: AppColors.slate400, size: 20),
+                      hintStyle: TextStyle(color: c.inputHint, fontSize: 12.5),
+                      prefixIcon: Icon(Icons.search_rounded, color: c.inputHint, size: 20),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear, color: AppColors.slate400, size: 16),
+                              icon: Icon(Icons.clear, color: c.inputHint, size: 16),
                               onPressed: () {
                                 _searchController.clear();
                                 _applyFilters();
@@ -715,6 +764,8 @@ class _HomeViewState extends State<HomeView> {
                             )
                           : null,
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
                   ),
@@ -722,7 +773,7 @@ class _HomeViewState extends State<HomeView> {
 
                 const SizedBox(height: 16),
 
-                // Quick Action Buttons (like web hero: Temuan, Hilang, + Buat Laporan)
+                // Quick Action Buttons (Temuan, Hilang, + Lapor)
                 Row(
                   children: [
                     Expanded(
@@ -730,10 +781,10 @@ class _HomeViewState extends State<HomeView> {
                         onPressed: () => _setFilter('temuan'),
                         style: OutlinedButton.styleFrom(
                           backgroundColor: _activeFilter == 'temuan'
-                              ? AppColors.bsiTeal.withValues(alpha: 0.25)
-                              : AppColors.cardBgLight.withValues(alpha: 0.6),
+                              ? AppColors.bsiTeal.withValues(alpha: c.isDark ? 0.25 : 0.12)
+                              : c.cardBg,
                           side: BorderSide(
-                            color: _activeFilter == 'temuan' ? AppColors.bsiTeal : AppColors.cardBorder,
+                            color: _activeFilter == 'temuan' ? AppColors.bsiTeal : c.cardBorder,
                           ),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -743,7 +794,7 @@ class _HomeViewState extends State<HomeView> {
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.bold,
-                            color: _activeFilter == 'temuan' ? AppColors.accentEmerald : Colors.white,
+                            color: _activeFilter == 'temuan' ? AppColors.bsiTeal : c.textPrimary,
                           ),
                         ),
                       ),
@@ -754,10 +805,10 @@ class _HomeViewState extends State<HomeView> {
                         onPressed: () => _setFilter('hilang'),
                         style: OutlinedButton.styleFrom(
                           backgroundColor: _activeFilter == 'hilang'
-                              ? AppColors.accentAmber.withValues(alpha: 0.25)
-                              : AppColors.cardBgLight.withValues(alpha: 0.6),
+                              ? AppColors.accentAmber.withValues(alpha: c.isDark ? 0.25 : 0.15)
+                              : c.cardBg,
                           side: BorderSide(
-                            color: _activeFilter == 'hilang' ? AppColors.accentAmber : AppColors.cardBorder,
+                            color: _activeFilter == 'hilang' ? AppColors.accentAmber : c.cardBorder,
                           ),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -767,7 +818,7 @@ class _HomeViewState extends State<HomeView> {
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.bold,
-                            color: _activeFilter == 'hilang' ? AppColors.accentAmber : Colors.white,
+                            color: _activeFilter == 'hilang' ? AppColors.accentAmberDark : c.textPrimary,
                           ),
                         ),
                       ),
@@ -808,7 +859,7 @@ class _HomeViewState extends State<HomeView> {
 
                 const SizedBox(height: 18),
 
-                // Statistics Action Cards (matching web hero layout)
+                // Statistics Action Cards
                 Row(
                   children: [
                     // Card 1: Barang Hilang (Amber Gradient)
@@ -831,13 +882,13 @@ class _HomeViewState extends State<HomeView> {
                             ),
                             borderRadius: BorderRadius.circular(20),
                             border: _activeFilter == 'hilang'
-                                ? Border.all(color: Colors.white, width: 2)
+                                ? Border.all(color: c.textPrimary, width: 2)
                                 : null,
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.accentAmber.withValues(alpha: 0.35),
-                                blurRadius: 16,
-                                offset: const Offset(0, 6),
+                                color: AppColors.accentAmber.withValues(alpha: 0.3),
+                                blurRadius: 14,
+                                offset: const Offset(0, 5),
                               ),
                             ],
                           ),
@@ -891,7 +942,7 @@ class _HomeViewState extends State<HomeView> {
 
                     const SizedBox(width: 12),
 
-                    // Card 2: Barang Temuan (Navy Blue Translucent)
+                    // Card 2: Barang Temuan
                     Expanded(
                       child: InkWell(
                         onTap: () => _setFilter('temuan'),
@@ -900,12 +951,21 @@ class _HomeViewState extends State<HomeView> {
                           height: 136,
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: AppColors.cardBgNavy,
+                            color: c.cardBg,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: _activeFilter == 'temuan' ? AppColors.accentBlue : AppColors.cardBorder,
+                              color: _activeFilter == 'temuan' ? AppColors.accentBlue : c.cardBorder,
                               width: _activeFilter == 'temuan' ? 2 : 1,
                             ),
+                            boxShadow: c.isDark
+                                ? null
+                                : [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.04),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -932,21 +992,21 @@ class _HomeViewState extends State<HomeView> {
                                 children: [
                                   Text(
                                     "$_foundCount",
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 30,
                                       fontWeight: FontWeight.w900,
-                                      color: Colors.white,
+                                      color: c.textPrimary,
                                       height: 1.0,
                                       letterSpacing: -1,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
-                                  const Text(
+                                  Text(
                                     "BARANG TEMUAN",
                                     style: TextStyle(
                                       fontSize: 9.5,
                                       fontWeight: FontWeight.w800,
-                                      color: AppColors.slate400,
+                                      color: c.textMuted,
                                       letterSpacing: 0.6,
                                     ),
                                   ),
@@ -970,12 +1030,21 @@ class _HomeViewState extends State<HomeView> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
-                      color: AppColors.cardBgNavy,
+                      color: c.cardBg,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: _activeFilter == 'completed' ? AppColors.accentEmerald : AppColors.cardBorder,
+                        color: _activeFilter == 'completed' ? AppColors.accentEmerald : c.cardBorder,
                         width: _activeFilter == 'completed' ? 2 : 1,
                       ),
+                      boxShadow: c.isDark
+                          ? null
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1004,20 +1073,20 @@ class _HomeViewState extends State<HomeView> {
                               children: [
                                 Text(
                                   "$_completedCount",
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.w900,
-                                    color: Colors.white,
+                                    color: c.textPrimary,
                                     height: 1.0,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
-                                const Text(
+                                Text(
                                   "BERHASIL KEMBALI KE PEMILIK",
                                   style: TextStyle(
                                     fontSize: 9.5,
                                     fontWeight: FontWeight.w800,
-                                    color: AppColors.slate400,
+                                    color: c.textMuted,
                                     letterSpacing: 0.5,
                                   ),
                                 ),
@@ -1025,13 +1094,13 @@ class _HomeViewState extends State<HomeView> {
                             ),
                           ],
                         ),
-                        // Avatar stack preview (like web)
+                        // Avatar stack preview
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AppColors.cardBgLight,
+                            color: c.cardBgLight,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.cardBorder),
+                            border: Border.all(color: c.cardBorder),
                           ),
                           child: Text(
                             "RA • SW • +${_completedCount > 3 ? _completedCount : 3}",
@@ -1055,43 +1124,27 @@ class _HomeViewState extends State<HomeView> {
   }
 
   // =========================================================================
-  // SECTION 2: FEED LAPORAN (PUTIH / LIGHT)
+  // SECTION 2: FEED LAPORAN (Adaptive Dark / Light — Seamless Background)
   // =========================================================================
-  Widget _buildWhiteFeedSection() {
+  Widget _buildFeedSection(FinditColors c) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.lightBg, // Clean Crisp White Background (#F8FAFC)
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-      ),
+      color: c.feedSectionBg,
       padding: const EdgeInsets.fromLTRB(0, 24, 0, 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Sheet Top Drag / Indicator Handle
-          Center(
-            child: Container(
-              width: 44,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 18),
-              decoration: BoxDecoration(
-                color: const Color(0xFFCBD5E1),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-
           // Category Chips Bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   "Kategori Barang",
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.lightTextPrimary,
+                    color: c.textPrimary,
                   ),
                 ),
                 if (_selectedCategoryId != null || _activeFilter != 'all' || _selectedCampus != null)
@@ -1109,7 +1162,7 @@ class _HomeViewState extends State<HomeView> {
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.accentAmberDark,
+                        color: AppColors.accentAmber,
                       ),
                     ),
                   ),
@@ -1119,7 +1172,7 @@ class _HomeViewState extends State<HomeView> {
 
           const SizedBox(height: 10),
 
-          // Horizontal Category Pills (Light Theme)
+          // Horizontal Category Pills
           SizedBox(
             height: 36,
             child: ListView.builder(
@@ -1138,18 +1191,18 @@ class _HomeViewState extends State<HomeView> {
                         setState(() => _selectedCategoryId = null);
                         _applyFilters();
                       },
-                      backgroundColor: Colors.white,
+                      backgroundColor: c.chipBg,
                       selectedColor: AppColors.accentAmber,
                       checkmarkColor: AppColors.slate950,
                       labelStyle: TextStyle(
-                        color: isAll ? AppColors.slate950 : AppColors.lightTextSecondary,
+                        color: isAll ? AppColors.slate950 : c.textSecondary,
                         fontWeight: FontWeight.w700,
                         fontSize: 12,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                         side: BorderSide(
-                          color: isAll ? AppColors.accentAmber : const Color(0xFFE2E8F0),
+                          color: isAll ? AppColors.accentAmber : c.chipBorder,
                         ),
                       ),
                     ),
@@ -1170,18 +1223,18 @@ class _HomeViewState extends State<HomeView> {
                       });
                       _applyFilters();
                     },
-                    backgroundColor: Colors.white,
+                    backgroundColor: c.chipBg,
                     selectedColor: AppColors.accentAmber,
                     checkmarkColor: AppColors.slate950,
                     labelStyle: TextStyle(
-                      color: isSelected ? AppColors.slate950 : AppColors.lightTextSecondary,
+                      color: isSelected ? AppColors.slate950 : c.textSecondary,
                       fontWeight: FontWeight.w700,
                       fontSize: 12,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                       side: BorderSide(
-                        color: isSelected ? AppColors.accentAmber : const Color(0xFFE2E8F0),
+                        color: isSelected ? AppColors.accentAmber : c.chipBorder,
                       ),
                     ),
                   ),
@@ -1192,7 +1245,7 @@ class _HomeViewState extends State<HomeView> {
 
           const SizedBox(height: 22),
 
-          // Section Title: Laporan Terkini (matching web headline)
+          // Section Title: Laporan Terkini
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -1211,19 +1264,19 @@ class _HomeViewState extends State<HomeView> {
                                 : _activeFilter == 'completed'
                                     ? "Barang Berhasil Kembali"
                                     : "Barang Temuan & Hilang Terbaru",
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
-                          color: AppColors.lightTextPrimary,
+                          color: c.textPrimary,
                           letterSpacing: -0.3,
                         ),
                       ),
                       const SizedBox(height: 2),
-                      const Text(
+                      Text(
                         "Barang yang baru dilaporkan di lingkungan kampus",
                         style: TextStyle(
                           fontSize: 11.5,
-                          color: AppColors.lightTextMuted,
+                          color: c.textMuted,
                         ),
                       ),
                     ],
@@ -1232,16 +1285,16 @@ class _HomeViewState extends State<HomeView> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: c.chipBg,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: c.chipBorder),
                   ),
                   child: Text(
                     "${_filteredReports.length} barang",
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.lightTextSecondary,
+                      color: c.textSecondary,
                     ),
                   ),
                 ),
@@ -1251,7 +1304,7 @@ class _HomeViewState extends State<HomeView> {
 
           const SizedBox(height: 14),
 
-          // Horizontal Box Cards Carousel (Clean Light Cards)
+          // Horizontal Box Cards Carousel
           _isLoading
               ? const SizedBox(
                   height: 270,
@@ -1264,9 +1317,9 @@ class _HomeViewState extends State<HomeView> {
                       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       padding: const EdgeInsets.all(28),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: c.cardBg,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: c.cardBorder),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -1275,13 +1328,13 @@ class _HomeViewState extends State<HomeView> {
                             width: 60,
                             height: 60,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
+                              color: c.cardBgLight,
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.inbox_outlined,
                               size: 32,
-                              color: Color(0xFF94A3B8),
+                              color: c.textMuted,
                             ),
                           ),
                           const SizedBox(height: 14),
@@ -1290,19 +1343,19 @@ class _HomeViewState extends State<HomeView> {
                                 ? "Belum ada laporan di ${_selectedCampus!.namaKampus}."
                                 : "Belum ada laporan barang.",
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14.5,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.lightTextPrimary,
+                              color: c.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
+                          Text(
                             "Jadilah yang pertama melaporkan kehilangan atau temuan barang.",
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.lightTextMuted,
+                              color: c.textMuted,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -1337,7 +1390,7 @@ class _HomeViewState extends State<HomeView> {
                         separatorBuilder: (_, __) => const SizedBox(width: 14),
                         itemBuilder: (context, index) => ReportBoxCard(
                           report: _filteredReports[index],
-                          isLight: true, // Clean White Card on Light Background!
+                          isLight: !c.isDark,
                         ),
                       ),
                     ),
@@ -1347,9 +1400,9 @@ class _HomeViewState extends State<HomeView> {
   }
 
   // =========================================================================
-  // SECTION 3: KISAH SUKSES KOMUNITAS (BIRU NAVY)
+  // SECTION 3: KISAH SUKSES KOMUNITAS (Adaptive Dark / Light)
   // =========================================================================
-  Widget _buildNavyCommunitySection() {
+  Widget _buildCommunitySection(FinditColors c) {
     final stories = [
       {
         'initials': 'RA',
@@ -1375,8 +1428,8 @@ class _HomeViewState extends State<HomeView> {
     ];
 
     return Container(
-      color: AppColors.appDark, // Deep Navy Section
-      padding: const EdgeInsets.fromLTRB(20, 32, 20, 32),
+      color: c.communitySectionBg,
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1384,14 +1437,14 @@ class _HomeViewState extends State<HomeView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.accentAmber.withValues(alpha: 0.15),
+              color: AppColors.accentAmber.withValues(alpha: c.isDark ? 0.15 : 0.12),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppColors.accentAmber.withValues(alpha: 0.4), width: 0.8),
             ),
-            child: const Text(
+            child: Text(
               "★ KISAH SUKSES KOMUNITAS",
               style: TextStyle(
-                color: AppColors.accentAmberLight,
+                color: c.isDark ? AppColors.accentAmberLight : AppColors.accentAmberDark,
                 fontSize: 10,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.8,
@@ -1401,21 +1454,21 @@ class _HomeViewState extends State<HomeView> {
           const SizedBox(height: 8),
 
           // Title
-          const Text(
+          Text(
             "Karena Kejujuran Itu Menular",
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w900,
-              color: Colors.white,
+              color: c.textPrimary,
               letterSpacing: -0.4,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             "Melihat barang kembali ke pemiliknya adalah alasan kami hadir. Bangun integritas kampus UBSI bersama-sama.",
             style: TextStyle(
               fontSize: 12,
-              color: AppColors.slate400,
+              color: c.textMuted,
               height: 1.4,
             ),
           ),
@@ -1435,12 +1488,12 @@ class _HomeViewState extends State<HomeView> {
                   width: 260,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.cardBg,
+                    color: c.cardBg,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.cardBorder),
+                    border: Border.all(color: c.cardBorder),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
+                        color: Colors.black.withValues(alpha: c.isDark ? 0.2 : 0.06),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -1471,8 +1524,8 @@ class _HomeViewState extends State<HomeView> {
                               children: [
                                 Text(
                                   s['name'] as String,
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: c.textPrimary,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
@@ -1481,8 +1534,8 @@ class _HomeViewState extends State<HomeView> {
                                   s['role'] as String,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: AppColors.slate400,
+                                  style: TextStyle(
+                                    color: c.textMuted,
                                     fontSize: 10,
                                   ),
                                 ),
@@ -1501,8 +1554,8 @@ class _HomeViewState extends State<HomeView> {
                         "\"${s['story']}\"",
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.slate300,
+                        style: TextStyle(
+                          color: c.textSecondary,
                           fontSize: 11.5,
                           height: 1.35,
                           fontStyle: FontStyle.italic,
@@ -1535,9 +1588,9 @@ class _HomeViewState extends State<HomeView> {
   }
 
   // =========================================================================
-  // SECTION 4: ALUR & PANDUAN (PUTIH / LIGHT)
+  // SECTION 4: ALUR & PANDUAN (Adaptive Dark / Light)
   // =========================================================================
-  Widget _buildWhiteGuideSection() {
+  Widget _buildGuideSection(FinditColors c) {
     final faqs = [
       {
         'q': 'Bagaimana cara melaporkan barang temuan?',
@@ -1554,8 +1607,8 @@ class _HomeViewState extends State<HomeView> {
     ];
 
     return Container(
-      color: Colors.white, // Clean Crisp White (#FFFFFF)
-      padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
+      color: c.guideSectionBg,
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 110),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1563,7 +1616,7 @@ class _HomeViewState extends State<HomeView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFFDCFCE7),
+              color: const Color(0xFFDCFCE7).withValues(alpha: c.isDark ? 0.15 : 1.0),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Text(
@@ -1579,21 +1632,21 @@ class _HomeViewState extends State<HomeView> {
           const SizedBox(height: 8),
 
           // Title
-          const Text(
+          Text(
             "Cara Kerja Find.It",
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w900,
-              color: AppColors.lightTextPrimary,
+              color: c.textPrimary,
               letterSpacing: -0.4,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             "3 langkah mudah menemukan kembali barang berharga Anda",
             style: TextStyle(
               fontSize: 12,
-              color: AppColors.lightTextMuted,
+              color: c.textMuted,
             ),
           ),
 
@@ -1601,45 +1654,48 @@ class _HomeViewState extends State<HomeView> {
 
           // 3 Steps
           _buildStepRow(
+            c: c,
             number: "1",
             icon: Icons.edit_note_rounded,
             iconColor: const Color(0xFF2563EB),
-            iconBg: const Color(0xFFEFF6FF),
+            iconBg: c.isDark ? const Color(0xFF1E3A5F) : const Color(0xFFEFF6FF),
             title: "Laporkan Barang",
             desc: "Isi formulir laporan kehilangan atau temuan barang dengan deskripsi dan lokasi akurat.",
           ),
           const SizedBox(height: 12),
           _buildStepRow(
+            c: c,
             number: "2",
             icon: Icons.verified_user_outlined,
             iconColor: const Color(0xFF059669),
-            iconBg: const Color(0xFFECFDF5),
+            iconBg: c.isDark ? const Color(0xFF1A3D2E) : const Color(0xFFECFDF5),
             title: "Verifikasi Kampus",
             desc: "Admin kampus UBSI memeriksa keabsahan laporan agar terhindar dari spam atau klaim palsu.",
           ),
           const SizedBox(height: 12),
           _buildStepRow(
+            c: c,
             number: "3",
             icon: Icons.handshake_outlined,
             iconColor: const Color(0xFFD97706),
-            iconBg: const Color(0xFFFFFBEB),
+            iconBg: c.isDark ? const Color(0xFF3D2E1A) : const Color(0xFFFFFBEB),
             title: "Serah Terima Aman",
             desc: "Ambil barang di pos satpam kampus atau hubungi penemu yang telah terverifikasi resmi.",
           ),
 
           const SizedBox(height: 28),
 
-          const Divider(color: Color(0xFFE2E8F0)),
+          Divider(color: c.divider),
 
           const SizedBox(height: 16),
 
           // FAQ Accordion
-          const Text(
+          Text(
             "Pertanyaan Umum (FAQ)",
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: AppColors.lightTextPrimary,
+              color: c.textPrimary,
             ),
           ),
           const SizedBox(height: 10),
@@ -1650,9 +1706,9 @@ class _HomeViewState extends State<HomeView> {
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: c.faqBg,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: c.faqBorder),
               ),
               child: Theme(
                 data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -1667,10 +1723,10 @@ class _HomeViewState extends State<HomeView> {
                   tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
                   title: Text(
                     f['q']!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.lightTextPrimary,
+                      color: c.textPrimary,
                     ),
                   ),
                   children: [
@@ -1678,9 +1734,9 @@ class _HomeViewState extends State<HomeView> {
                       padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                       child: Text(
                         f['a']!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11.5,
-                          color: AppColors.lightTextSecondary,
+                          color: c.textSecondary,
                           height: 1.45,
                         ),
                       ),
@@ -1696,6 +1752,7 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildStepRow({
+    required FinditColors c,
     required String number,
     required IconData icon,
     required Color iconColor,
@@ -1706,9 +1763,9 @@ class _HomeViewState extends State<HomeView> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: c.stepCardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: c.stepCardBorder),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1729,18 +1786,18 @@ class _HomeViewState extends State<HomeView> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.lightTextPrimary,
+                    color: c.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   desc,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11.5,
-                    color: AppColors.lightTextSecondary,
+                    color: c.textSecondary,
                     height: 1.35,
                   ),
                 ),

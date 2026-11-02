@@ -59,7 +59,7 @@ class AppColors {
   static const Color slate900 = Color(0xFF0F172A);
   static const Color slate950 = Color(0xFF020617);
 
-  // Light Section Colors (Alternating Navy - White - Navy - White like web)
+  // Light Mode Palette
   static const Color lightBg = Color(0xFFF8FAFC); // Clean crisp off-white (Slate 50)
   static const Color lightSurface = Colors.white;
   static const Color lightCardBg = Colors.white;
@@ -69,4 +69,70 @@ class AppColors {
   static const Color lightTextPrimary = Color(0xFF0F172A); // Dark Slate 900
   static const Color lightTextSecondary = Color(0xFF475569); // Slate 600
   static const Color lightTextMuted = Color(0xFF64748B); // Slate 500
+}
+
+/// Theme-aware color helper. Use `FinditColors.of(context)` to get the right
+/// colors based on the current brightness (dark / light).
+class FinditColors {
+  final bool isDark;
+
+  const FinditColors._({required this.isDark});
+
+  factory FinditColors.of(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    return FinditColors._(isDark: brightness == Brightness.dark);
+  }
+
+  // Backgrounds — uniform across sections to prevent "belang warna"
+  Color get scaffoldBg => isDark ? AppColors.appDark : AppColors.lightBg;
+  Color get surface => isDark ? AppColors.surface : Colors.white;
+
+  // Cards
+  Color get cardBg => isDark ? AppColors.cardBg : Colors.white;
+  Color get cardBgLight => isDark ? AppColors.cardBgLight : const Color(0xFFF1F5F9);
+  Color get cardBgNavy => isDark ? AppColors.cardBgNavy : Colors.white;
+  Color get cardBorder => isDark ? AppColors.cardBorder : AppColors.lightBorder;
+  Color get cardBorderLight => isDark ? AppColors.cardBorderLight : const Color(0xFFE2E8F0);
+
+  // Text
+  Color get textPrimary => isDark ? Colors.white : AppColors.lightTextPrimary;
+  Color get textSecondary => isDark ? AppColors.slate400 : AppColors.lightTextSecondary;
+  Color get textMuted => isDark ? AppColors.textMuted : AppColors.lightTextMuted;
+  Color get slate300Adaptive => isDark ? AppColors.slate300 : AppColors.lightTextSecondary;
+
+  // Nav bar
+  Color get navBarBg => isDark ? const Color(0xFF142036) : Colors.white;
+  Color get navBarBorder => isDark ? const Color(0xFF263753) : AppColors.lightBorder;
+  Color get navBarFabBorder => isDark ? AppColors.appDark : Colors.white;
+
+  // Unified section backgrounds for home (no mismatched stripes / belang)
+  Color get heroSectionBg => scaffoldBg;
+  Color get feedSectionBg => scaffoldBg;
+  Color get communitySectionBg => scaffoldBg;
+  Color get guideSectionBg => scaffoldBg;
+
+  // Input fields
+  Color get inputFill => isDark ? AppColors.cardBgLight : Colors.white;
+  Color get inputBorder => isDark ? AppColors.cardBorder : AppColors.lightBorder;
+  Color get inputHint => isDark ? AppColors.slate400 : AppColors.lightTextMuted;
+  Color get inputText => isDark ? Colors.white : AppColors.lightTextPrimary;
+
+  // Chip / Filter
+  Color get chipBg => isDark ? AppColors.cardBgLight : Colors.white;
+  Color get chipBorder => isDark ? AppColors.cardBorder : AppColors.lightBorder;
+
+  // Dialog / Bottom Sheet
+  Color get sheetBg => isDark ? AppColors.cardBg : Colors.white;
+  Color get divider => isDark ? AppColors.cardBorder : AppColors.lightBorder;
+
+  // Snackbar
+  Color get snackbarBg => isDark ? AppColors.cardBgLight : AppColors.appDark;
+
+  // Step / guide cards
+  Color get stepCardBg => isDark ? AppColors.cardBg : Colors.white;
+  Color get stepCardBorder => isDark ? AppColors.cardBorder : AppColors.lightBorder;
+
+  // FAQ
+  Color get faqBg => isDark ? AppColors.cardBg : Colors.white;
+  Color get faqBorder => isDark ? AppColors.cardBorder : AppColors.lightBorder;
 }

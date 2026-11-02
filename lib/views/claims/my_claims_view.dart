@@ -57,12 +57,14 @@ class _MyClaimsViewState extends State<MyClaimsView> {
 
   @override
   Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.appDark,
+      backgroundColor: c.scaffoldBg,
       appBar: widget.embedded
           ? null
           : AppBar(
-              backgroundColor: AppColors.appDark,
+              backgroundColor: c.scaffoldBg,
               elevation: 0,
               title: const Text('Klaim Saya'),
             ),
@@ -80,29 +82,29 @@ class _MyClaimsViewState extends State<MyClaimsView> {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: AppColors.cardBgLight,
+                          color: c.cardBgLight,
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.cardBorder),
+                          border: Border.all(color: c.cardBorder),
                         ),
-                        child: const Icon(Icons.inventory_2_outlined, size: 40, color: AppColors.slate400),
+                        child: Icon(Icons.inventory_2_outlined, size: 40, color: c.textMuted),
                       ),
                       const SizedBox(height: 20),
-                      const Center(
+                      Center(
                         child: Text(
                           'Belum Ada Pengajuan Klaim',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: c.textPrimary,
                           ),
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Center(
+                      Center(
                         child: Text(
                           'Jika Anda mengenali barang milik Anda di daftar temuan, ajukan klaim untuk mengambilnya.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.slate400, fontSize: 13, height: 1.4),
+                          style: TextStyle(color: c.textMuted, fontSize: 13, height: 1.4),
                         ),
                       ),
                     ],
@@ -122,9 +124,9 @@ class _MyClaimsViewState extends State<MyClaimsView> {
                       return Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppColors.cardBg,
+                          color: c.cardBg,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.cardBorder),
+                          border: Border.all(color: c.cardBorder),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,10 +137,10 @@ class _MyClaimsViewState extends State<MyClaimsView> {
                                 Expanded(
                                   child: Text(
                                     claim.report?.namaBarang ?? 'Barang Temuan #${claim.idReport}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                      color: c.textPrimary,
                                     ),
                                   ),
                                 ),
@@ -164,11 +166,11 @@ class _MyClaimsViewState extends State<MyClaimsView> {
                             if (claim.report?.lokasi != null)
                               Row(
                                 children: [
-                                  const Icon(Icons.location_on_outlined, size: 14, color: AppColors.slate400),
+                                  Icon(Icons.location_on_outlined, size: 14, color: c.textMuted),
                                   const SizedBox(width: 4),
                                   Text(
                                     claim.report!.lokasi,
-                                    style: const TextStyle(fontSize: 12, color: AppColors.slate400),
+                                    style: TextStyle(fontSize: 12, color: c.textMuted),
                                   ),
                                 ],
                               ),
@@ -177,21 +179,21 @@ class _MyClaimsViewState extends State<MyClaimsView> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: AppColors.appDarker,
+                                color: c.cardBgLight,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.cardBorder),
+                                border: Border.all(color: c.cardBorder),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Bukti yang diajukan:',
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.slate400),
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: c.textMuted),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     claim.pesanKlaim,
-                                    style: const TextStyle(fontSize: 13, color: AppColors.slate300, height: 1.4),
+                                    style: TextStyle(fontSize: 13, color: c.textSecondary, height: 1.4),
                                   ),
                                 ],
                               ),
@@ -200,11 +202,11 @@ class _MyClaimsViewState extends State<MyClaimsView> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                const Icon(Icons.calendar_today_outlined, size: 12, color: AppColors.textMuted),
+                                Icon(Icons.calendar_today_outlined, size: 12, color: c.textMuted),
                                 const SizedBox(width: 5),
                                 Text(
                                   claim.tanggalKlaim,
-                                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                                  style: TextStyle(fontSize: 11, color: c.textMuted),
                                 ),
                               ],
                             ),

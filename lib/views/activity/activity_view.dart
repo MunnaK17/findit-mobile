@@ -13,22 +13,24 @@ class ActivityView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: AppColors.appDark,
+        backgroundColor: c.scaffoldBg,
         appBar: AppBar(
-          backgroundColor: AppColors.appDark,
+          backgroundColor: c.scaffoldBg,
           elevation: 0,
           title: const Text('Aktivitas'),
-          bottom: const TabBar(
+          bottom: TabBar(
             indicatorColor: AppColors.accentAmber,
             indicatorWeight: 3,
             labelColor: AppColors.accentAmber,
-            unselectedLabelColor: AppColors.slate400,
-            dividerColor: AppColors.cardBorder,
-            labelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-            tabs: [
+            unselectedLabelColor: c.textMuted,
+            dividerColor: c.cardBorder,
+            labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            tabs: const [
               Tab(text: 'Laporan Saya'),
               Tab(text: 'Klaim Saya'),
             ],
@@ -108,6 +110,7 @@ class _MyReportsTabState extends State<_MyReportsTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final c = FinditColors.of(context);
 
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator(color: AppColors.accentAmber));
@@ -120,11 +123,11 @@ class _MyReportsTabState extends State<_MyReportsTab>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.lock_outline, size: 48, color: AppColors.slate400),
+              Icon(Icons.lock_outline, size: 48, color: c.textMuted),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Masuk untuk melihat aktivitas Anda',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -143,26 +146,26 @@ class _MyReportsTabState extends State<_MyReportsTab>
     return RefreshIndicator(
       onRefresh: _load,
       color: AppColors.accentAmber,
-      backgroundColor: AppColors.cardBg,
+      backgroundColor: c.cardBg,
       child: _reports.isEmpty
           ? ListView(
               padding: const EdgeInsets.all(40),
-              children: const [
-                SizedBox(height: 80),
-                Icon(Icons.inventory_2_outlined, size: 56, color: AppColors.slate400),
-                SizedBox(height: 16),
+              children: [
+                const SizedBox(height: 80),
+                Icon(Icons.inventory_2_outlined, size: 56, color: c.textMuted),
+                const SizedBox(height: 16),
                 Center(
                   child: Text(
                     'Belum Ada Laporan',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: c.textPrimary),
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Center(
                   child: Text(
                     'Laporan barang hilang atau temuan yang Anda buat akan muncul di sini.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.slate400, fontSize: 13, height: 1.4),
+                    style: TextStyle(color: c.textMuted, fontSize: 13, height: 1.4),
                   ),
                 ),
               ],
@@ -187,9 +190,9 @@ class _MyReportsTabState extends State<_MyReportsTab>
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColors.cardBg,
+                      color: c.cardBg,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: AppColors.cardBorder),
+                      border: Border.all(color: c.cardBorder),
                     ),
                     child: Row(
                       children: [
@@ -210,10 +213,10 @@ class _MyReportsTabState extends State<_MyReportsTab>
                                 r.namaBarang,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
-                                  color: Colors.white,
+                                  color: c.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -221,7 +224,7 @@ class _MyReportsTabState extends State<_MyReportsTab>
                                 "${r.isHilang ? 'Hilang' : 'Temuan'} • ${r.campus?.namaKampus.replaceAll('UBSI Kampus ', '') ?? r.lokasi}",
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 12, color: AppColors.slate400),
+                                style: TextStyle(fontSize: 12, color: c.textMuted),
                               ),
                             ],
                           ),

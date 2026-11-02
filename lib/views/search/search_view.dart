@@ -69,7 +69,7 @@ class _SearchViewState extends State<SearchView> {
     }).toList();
   }
 
-  Widget _typeChip(String value, String label, Color color) {
+  Widget _typeChip(FinditColors c, String value, String label, Color color) {
     final selected = _type == value;
     return Expanded(
       child: GestureDetector(
@@ -88,7 +88,7 @@ class _SearchViewState extends State<SearchView> {
               fontSize: 13,
               color: selected
                   ? (value == 'temuan' ? Colors.white : AppColors.slate950)
-                  : AppColors.slate400,
+                  : c.textMuted,
             ),
           ),
         ),
@@ -97,6 +97,7 @@ class _SearchViewState extends State<SearchView> {
   }
 
   Widget _filterDropdown<T>({
+    required FinditColors c,
     required String hint,
     required IconData icon,
     required T? value,
@@ -106,27 +107,27 @@ class _SearchViewState extends State<SearchView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: c.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: value != null ? AppColors.accentAmber : AppColors.cardBorder,
+          color: value != null ? AppColors.accentAmber : c.cardBorder,
         ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           value: value,
           isExpanded: true,
-          dropdownColor: AppColors.cardBg,
-          icon: const Icon(Icons.arrow_drop_down, color: AppColors.slate400),
-          style: const TextStyle(color: Colors.white, fontSize: 12),
+          dropdownColor: c.sheetBg,
+          icon: Icon(Icons.arrow_drop_down, color: c.textMuted),
+          style: TextStyle(color: c.textPrimary, fontSize: 12),
           hint: Row(
             children: [
-              Icon(icon, size: 16, color: AppColors.slate400),
+              Icon(icon, size: 16, color: c.textMuted),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(hint,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: AppColors.slate400, fontSize: 12)),
+                    style: TextStyle(color: c.textMuted, fontSize: 12)),
               ),
             ],
           ),
@@ -140,11 +141,12 @@ class _SearchViewState extends State<SearchView> {
   @override
   Widget build(BuildContext context) {
     final results = _results;
+    final c = FinditColors.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.appDark,
+      backgroundColor: c.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: AppColors.appDark,
+        backgroundColor: c.scaffoldBg,
         elevation: 0,
         title: const Text('Cari Barang'),
       ),
@@ -154,15 +156,15 @@ class _SearchViewState extends State<SearchView> {
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
             child: TextField(
               controller: _controller,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              style: TextStyle(color: c.inputText, fontSize: 14),
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 hintText: 'Cari nama barang, lokasi, atau ciri...',
-                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.slate400),
+                prefixIcon: Icon(Icons.search_rounded, color: c.inputHint),
                 suffixIcon: _controller.text.isEmpty
                     ? null
                     : IconButton(
-                        icon: const Icon(Icons.clear, size: 18, color: AppColors.slate400),
+                        icon: Icon(Icons.clear, size: 18, color: c.inputHint),
                         onPressed: () => setState(_controller.clear),
                       ),
               ),
@@ -173,15 +175,15 @@ class _SearchViewState extends State<SearchView> {
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: AppColors.cardBg,
+                color: c.cardBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.cardBorder),
+                border: Border.all(color: c.cardBorder),
               ),
               child: Row(
                 children: [
-                  _typeChip('all', 'Semua', AppColors.accentAmberLight),
-                  _typeChip('hilang', 'Barang Hilang', AppColors.accentAmber),
-                  _typeChip('temuan', 'Barang Temuan', AppColors.accentBlue),
+                  _typeChip(c, 'all', 'Semua', AppColors.accentAmberLight),
+                  _typeChip(c, 'hilang', 'Barang Hilang', AppColors.accentAmber),
+                  _typeChip(c, 'temuan', 'Barang Temuan', AppColors.accentBlue),
                 ],
               ),
             ),
@@ -192,14 +194,15 @@ class _SearchViewState extends State<SearchView> {
               children: [
                 Expanded(
                   child: _filterDropdown<int?>(
+                    c: c,
                     hint: 'Kategori',
                     icon: Icons.category_outlined,
                     value: _categoryId,
                     items: [
                       const DropdownMenuItem<int?>(value: null, child: Text('Semua Kategori')),
-                      ..._categories.map((c) => DropdownMenuItem<int?>(
-                            value: c.id,
-                            child: Text(c.namaKategori, overflow: TextOverflow.ellipsis),
+                      ..._categories.map((cat) => DropdownMenuItem<int?>(
+                            value: cat.id,
+                            child: Text(cat.namaKategori, overflow: TextOverflow.ellipsis),
                           )),
                     ],
                     onChanged: (v) => setState(() => _categoryId = v),
@@ -208,15 +211,16 @@ class _SearchViewState extends State<SearchView> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _filterDropdown<int?>(
+                    c: c,
                     hint: 'Cabang',
                     icon: Icons.location_city_rounded,
                     value: _campusId,
                     items: [
                       const DropdownMenuItem<int?>(value: null, child: Text('Semua Cabang')),
-                      ..._campuses.map((c) => DropdownMenuItem<int?>(
-                            value: c.id,
+                      ..._campuses.map((camp) => DropdownMenuItem<int?>(
+                            value: camp.id,
                             child: Text(
-                              c.namaKampus.replaceAll('UBSI Kampus ', ''),
+                              camp.namaKampus.replaceAll('UBSI Kampus ', ''),
                               overflow: TextOverflow.ellipsis,
                             ),
                           )),
@@ -233,7 +237,7 @@ class _SearchViewState extends State<SearchView> {
               alignment: Alignment.centerLeft,
               child: Text(
                 '${results.length} barang ditemukan',
-                style: const TextStyle(fontSize: 12, color: AppColors.slate400),
+                style: TextStyle(fontSize: 12, color: c.textMuted),
               ),
             ),
           ),
@@ -243,17 +247,17 @@ class _SearchViewState extends State<SearchView> {
                 : RefreshIndicator(
                     onRefresh: _load,
                     color: AppColors.accentAmber,
-                    backgroundColor: AppColors.cardBg,
+                    backgroundColor: c.cardBg,
                     child: results.isEmpty
                         ? ListView(
-                            children: const [
-                              SizedBox(height: 80),
-                              Icon(Icons.search_off_rounded, size: 56, color: AppColors.slate400),
-                              SizedBox(height: 12),
+                            children: [
+                              const SizedBox(height: 80),
+                              Icon(Icons.search_off_rounded, size: 56, color: c.textMuted),
+                              const SizedBox(height: 12),
                               Center(
                                 child: Text(
                                   'Tidak ada barang yang cocok',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ],
@@ -261,7 +265,10 @@ class _SearchViewState extends State<SearchView> {
                         : ListView.builder(
                             padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
                             itemCount: results.length,
-                            itemBuilder: (_, i) => ReportCard(report: results[i]),
+                            itemBuilder: (_, i) => ReportCard(
+                              report: results[i],
+                              isLight: !c.isDark,
+                            ),
                           ),
                   ),
           ),

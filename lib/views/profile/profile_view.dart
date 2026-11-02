@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
+import '../../main.dart';
 import '../../models/user_model.dart';
 import '../../models/report_model.dart';
 import '../../services/auth_service.dart';
@@ -54,19 +55,20 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Future<void> _handleLogout() async {
+    final c = FinditColors.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardBg,
-        title: const Text('Konfirmasi Keluar', style: TextStyle(color: Colors.white)),
-        content: const Text(
+        backgroundColor: c.sheetBg,
+        title: Text('Konfirmasi Keluar', style: TextStyle(color: c.textPrimary)),
+        content: Text(
           'Apakah Anda yakin ingin keluar dari akun ini?',
-          style: TextStyle(color: AppColors.slate300),
+          style: TextStyle(color: c.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal', style: TextStyle(color: AppColors.slate400)),
+            child: Text('Batal', style: TextStyle(color: c.textMuted)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -99,18 +101,19 @@ class _ProfileViewState extends State<ProfileView> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
+          final cs = FinditColors.of(context);
           return Padding(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
             child: Container(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-              decoration: const BoxDecoration(
-                color: AppColors.cardBg,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                boxShadow: [
+              decoration: BoxDecoration(
+                color: cs.sheetBg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                boxShadow: const [
                   BoxShadow(
-                    color: Colors.black54,
+                    color: Colors.black26,
                     blurRadius: 20,
                     offset: Offset(0, -4),
                   ),
@@ -128,7 +131,7 @@ class _ProfileViewState extends State<ProfileView> {
                         height: 4,
                         margin: const EdgeInsets.only(bottom: 20),
                         decoration: BoxDecoration(
-                          color: AppColors.cardBorder,
+                          color: cs.cardBorder,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -148,7 +151,7 @@ class _ProfileViewState extends State<ProfileView> {
                           ),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -157,15 +160,15 @@ class _ProfileViewState extends State<ProfileView> {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: cs.textPrimary,
                                 ),
                               ),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
                                 'Nomor kontak untuk koordinasi barang',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.slate400,
+                                  color: cs.textMuted,
                                 ),
                               ),
                             ],
@@ -178,20 +181,20 @@ class _ProfileViewState extends State<ProfileView> {
                       controller: phoneController,
                       keyboardType: TextInputType.phone,
                       autofocus: true,
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      style: TextStyle(color: cs.inputText, fontSize: 15),
                       decoration: InputDecoration(
                         labelText: 'Nomor WhatsApp / HP',
                         hintText: 'Contoh: 085891565501',
                         prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.accentAmber),
                         filled: true,
-                        fillColor: AppColors.cardBgLight,
+                        fillColor: cs.inputFill,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: AppColors.cardBorder),
+                          borderSide: BorderSide(color: cs.inputBorder),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: AppColors.cardBorder),
+                          borderSide: BorderSide(color: cs.inputBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -217,12 +220,12 @@ class _ProfileViewState extends State<ProfileView> {
                             onPressed: isSaving ? null : () => Navigator.pop(ctx),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: const BorderSide(color: AppColors.cardBorder),
+                              side: BorderSide(color: cs.cardBorder),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                            child: const Text('Batal', style: TextStyle(color: AppColors.slate300)),
+                            child: Text('Batal', style: TextStyle(color: cs.textSecondary)),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -307,18 +310,19 @@ class _ProfileViewState extends State<ProfileView> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
+          final cs = FinditColors.of(context);
           return Padding(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
             child: Container(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-              decoration: const BoxDecoration(
-                color: AppColors.cardBg,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                boxShadow: [
+              decoration: BoxDecoration(
+                color: cs.sheetBg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                boxShadow: const [
                   BoxShadow(
-                    color: Colors.black54,
+                    color: Colors.black26,
                     blurRadius: 20,
                     offset: Offset(0, -4),
                   ),
@@ -336,7 +340,7 @@ class _ProfileViewState extends State<ProfileView> {
                         height: 4,
                         margin: const EdgeInsets.only(bottom: 20),
                         decoration: BoxDecoration(
-                          color: AppColors.cardBorder,
+                          color: cs.cardBorder,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -356,7 +360,7 @@ class _ProfileViewState extends State<ProfileView> {
                           ),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -365,15 +369,15 @@ class _ProfileViewState extends State<ProfileView> {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: cs.textPrimary,
                                 ),
                               ),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
                                 'Gunakan minimal 6 karakter',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.slate400,
+                                  color: cs.textMuted,
                                 ),
                               ),
                             ],
@@ -385,7 +389,7 @@ class _ProfileViewState extends State<ProfileView> {
                     TextFormField(
                       controller: newPasswordController,
                       obscureText: obscureNew,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      style: TextStyle(color: cs.inputText, fontSize: 14),
                       decoration: InputDecoration(
                         labelText: 'Kata Sandi Baru',
                         hintText: 'Minimal 6 karakter',
@@ -393,7 +397,7 @@ class _ProfileViewState extends State<ProfileView> {
                         suffixIcon: IconButton(
                           icon: Icon(
                             obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            color: AppColors.slate400,
+                            color: cs.textMuted,
                             size: 20,
                           ),
                           onPressed: () {
@@ -401,14 +405,14 @@ class _ProfileViewState extends State<ProfileView> {
                           },
                         ),
                         filled: true,
-                        fillColor: AppColors.cardBgLight,
+                        fillColor: cs.inputFill,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: AppColors.cardBorder),
+                          borderSide: BorderSide(color: cs.inputBorder),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: AppColors.cardBorder),
+                          borderSide: BorderSide(color: cs.inputBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -429,7 +433,7 @@ class _ProfileViewState extends State<ProfileView> {
                     TextFormField(
                       controller: confirmPasswordController,
                       obscureText: obscureConfirm,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      style: TextStyle(color: cs.inputText, fontSize: 14),
                       decoration: InputDecoration(
                         labelText: 'Konfirmasi Kata Sandi Baru',
                         hintText: 'Ulangi kata sandi baru',
@@ -437,7 +441,7 @@ class _ProfileViewState extends State<ProfileView> {
                         suffixIcon: IconButton(
                           icon: Icon(
                             obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            color: AppColors.slate400,
+                            color: cs.textMuted,
                             size: 20,
                           ),
                           onPressed: () {
@@ -445,14 +449,14 @@ class _ProfileViewState extends State<ProfileView> {
                           },
                         ),
                         filled: true,
-                        fillColor: AppColors.cardBgLight,
+                        fillColor: cs.inputFill,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: AppColors.cardBorder),
+                          borderSide: BorderSide(color: cs.inputBorder),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: AppColors.cardBorder),
+                          borderSide: BorderSide(color: cs.inputBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -477,12 +481,12 @@ class _ProfileViewState extends State<ProfileView> {
                             onPressed: isSaving ? null : () => Navigator.pop(ctx),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: const BorderSide(color: AppColors.cardBorder),
+                              side: BorderSide(color: cs.cardBorder),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                            child: const Text('Batal', style: TextStyle(color: AppColors.slate300)),
+                            child: Text('Batal', style: TextStyle(color: cs.textSecondary)),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -554,19 +558,32 @@ class _ProfileViewState extends State<ProfileView> {
 
   @override
   Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+    final themeProvider = context.themeProvider;
+
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: AppColors.appDark,
-        body: Center(child: CircularProgressIndicator(color: AppColors.accentAmber)),
+      return Scaffold(
+        backgroundColor: c.scaffoldBg,
+        body: const Center(child: CircularProgressIndicator(color: AppColors.accentAmber)),
       );
     }
 
     if (_user == null) {
       return Scaffold(
-        backgroundColor: AppColors.appDark,
+        backgroundColor: c.scaffoldBg,
         appBar: AppBar(
-          backgroundColor: AppColors.appDark,
+          backgroundColor: c.scaffoldBg,
           title: const Text('Profil Pengguna'),
+          actions: [
+            IconButton(
+              tooltip: c.isDark ? 'Mode Terang' : 'Mode Gelap',
+              icon: Icon(
+                c.isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                color: AppColors.accentAmber,
+              ),
+              onPressed: () => themeProvider.toggleTheme(),
+            ),
+          ],
         ),
         body: Center(
           child: Padding(
@@ -578,26 +595,26 @@ class _ProfileViewState extends State<ProfileView> {
                   width: 88,
                   height: 88,
                   decoration: BoxDecoration(
-                    color: AppColors.cardBgLight,
+                    color: c.cardBgLight,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.cardBorder),
+                    border: Border.all(color: c.cardBorder),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.account_circle_outlined,
                     size: 54,
-                    color: AppColors.slate400,
+                    color: c.textMuted,
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'Anda Masuk Sebagai Tamu',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: c.textPrimary),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Masuk ke akun untuk membuat laporan kehilangan/temuan dan memantau status klaim Anda.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.slate400, fontSize: 13, height: 1.4),
+                  style: TextStyle(color: c.textMuted, fontSize: 13, height: 1.4),
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
@@ -617,10 +634,23 @@ class _ProfileViewState extends State<ProfileView> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.appDark,
+      backgroundColor: c.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: AppColors.appDark,
+        backgroundColor: c.scaffoldBg,
         title: const Text('Profil Pengguna'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton(
+              tooltip: c.isDark ? 'Beralih ke Light Mode' : 'Beralih ke Night Mode',
+              icon: Icon(
+                c.isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                color: AppColors.accentAmber,
+              ),
+              onPressed: () => themeProvider.toggleTheme(),
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -631,9 +661,9 @@ class _ProfileViewState extends State<ProfileView> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.cardBg,
+                color: c.cardBg,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.cardBorder),
+                border: Border.all(color: c.cardBorder),
               ),
               child: Column(
                 children: [
@@ -642,7 +672,7 @@ class _ProfileViewState extends State<ProfileView> {
                     height: 76,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.cardBgLight,
+                      color: c.cardBgLight,
                       border: Border.all(color: AppColors.accentAmber, width: 2),
                     ),
                     alignment: Alignment.center,
@@ -659,18 +689,18 @@ class _ProfileViewState extends State<ProfileView> {
                   Text(
                     _user!.name,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                      color: c.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _user!.email,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.slate400,
+                      color: c.textMuted,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -728,12 +758,13 @@ class _ProfileViewState extends State<ProfileView> {
                   ),
 
                   const SizedBox(height: 16),
-                  const Divider(color: AppColors.cardBorder, height: 1),
+                  Divider(color: c.cardBorder, height: 1),
                   const SizedBox(height: 16),
 
                   // User Info Detail Items (Campus, NIM/NIP, Prodi, Phone)
                   if (_user!.campus != null) ...[
                     _buildInfoRow(
+                      c: c,
                       icon: Icons.account_balance_outlined,
                       label: 'Cabang Kampus',
                       value: _user!.campus!.namaKampus,
@@ -744,6 +775,7 @@ class _ProfileViewState extends State<ProfileView> {
 
                   if (_user!.nip != null && _user!.nip!.isNotEmpty) ...[
                     _buildInfoRow(
+                      c: c,
                       icon: Icons.badge_outlined,
                       label: 'NIP / NIDN',
                       value: _user!.nip!,
@@ -751,6 +783,7 @@ class _ProfileViewState extends State<ProfileView> {
                     const SizedBox(height: 10),
                   ] else if (_user!.nim != null && _user!.nim!.isNotEmpty) ...[
                     _buildInfoRow(
+                      c: c,
                       icon: Icons.credit_card_outlined,
                       label: 'NIM',
                       value: _user!.nim!,
@@ -760,6 +793,7 @@ class _ProfileViewState extends State<ProfileView> {
 
                   if (_user!.prodiUnit != null && _user!.prodiUnit!.isNotEmpty) ...[
                     _buildInfoRow(
+                      c: c,
                       icon: Icons.business_outlined,
                       label: _user!.isStaff ? 'Unit Kerja / Dept' : 'Program Studi',
                       value: _user!.prodiUnit!,
@@ -769,6 +803,7 @@ class _ProfileViewState extends State<ProfileView> {
 
                   // Kontak WhatsApp row (interactive)
                   _buildInfoRow(
+                    c: c,
                     icon: Icons.phone_outlined,
                     label: 'Kontak WhatsApp',
                     value: (_user!.phone != null && _user!.phone!.isNotEmpty)
@@ -791,17 +826,38 @@ class _ProfileViewState extends State<ProfileView> {
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: AppColors.cardBg,
+                color: c.cardBg,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.cardBorder),
+                border: Border.all(color: c.cardBorder),
               ),
               child: Column(
                 children: [
+                  // Night Mode / Light Mode Toggle
+                  SwitchListTile(
+                    secondary: Icon(
+                      c.isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                      color: AppColors.accentAmber,
+                    ),
+                    title: Text(
+                      c.isDark ? 'Night Mode (Mode Gelap)' : 'Light Mode (Mode Terang)',
+                      style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      c.isDark
+                          ? 'Aktif (Default) — Ketuk untuk beralih ke Light Mode'
+                          : 'Aktif — Ketuk untuk beralih ke Night Mode',
+                      style: TextStyle(color: c.textMuted, fontSize: 12),
+                    ),
+                    value: c.isDark,
+                    activeThumbColor: AppColors.accentAmber,
+                    onChanged: (val) => themeProvider.setDarkMode(val),
+                  ),
+                  Divider(height: 1, color: c.cardBorder),
                   ListTile(
                     leading: const Icon(Icons.inventory_2_outlined, color: AppColors.accentAmber),
-                    title: const Text('Klaim Saya', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                    subtitle: const Text('Pantau status klaim barang temuan', style: TextStyle(color: AppColors.slate400, fontSize: 12)),
-                    trailing: const Icon(Icons.chevron_right, color: AppColors.slate400),
+                    title: Text('Klaim Saya', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600)),
+                    subtitle: Text('Pantau status klaim barang temuan', style: TextStyle(color: c.textMuted, fontSize: 12)),
+                    trailing: Icon(Icons.chevron_right, color: c.textMuted),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -809,26 +865,26 @@ class _ProfileViewState extends State<ProfileView> {
                       );
                     },
                   ),
-                  const Divider(height: 1, color: AppColors.cardBorder),
+                  Divider(height: 1, color: c.cardBorder),
                   ListTile(
                     leading: const Icon(Icons.phone_outlined, color: AppColors.accentAmber),
-                    title: const Text('Ubah Nomor HP / WhatsApp', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    title: Text('Ubah Nomor HP / WhatsApp', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600)),
                     subtitle: Text(
                       _user!.phone?.isNotEmpty == true ? _user!.phone! : 'Atur nomor kontak aktif',
-                      style: const TextStyle(fontSize: 12, color: AppColors.slate400),
+                      style: TextStyle(fontSize: 12, color: c.textMuted),
                     ),
-                    trailing: const Icon(Icons.chevron_right, color: AppColors.slate400),
+                    trailing: Icon(Icons.chevron_right, color: c.textMuted),
                     onTap: _showEditPhoneDialog,
                   ),
-                  const Divider(height: 1, color: AppColors.cardBorder),
+                  Divider(height: 1, color: c.cardBorder),
                   ListTile(
                     leading: const Icon(Icons.lock_outline_rounded, color: AppColors.accentAmber),
-                    title: const Text('Ganti Kata Sandi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                    subtitle: const Text('Perbarui keamanan kata sandi akun', style: TextStyle(fontSize: 12, color: AppColors.slate400)),
-                    trailing: const Icon(Icons.chevron_right, color: AppColors.slate400),
+                    title: Text('Ganti Kata Sandi', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600)),
+                    subtitle: Text('Perbarui keamanan kata sandi akun', style: TextStyle(fontSize: 12, color: c.textMuted)),
+                    trailing: Icon(Icons.chevron_right, color: c.textMuted),
                     onTap: _showChangePasswordDialog,
                   ),
-                  const Divider(height: 1, color: AppColors.cardBorder),
+                  Divider(height: 1, color: c.cardBorder),
                   ListTile(
                     leading: const Icon(Icons.logout, color: AppColors.danger),
                     title: const Text('Keluar dari Akun', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
@@ -846,16 +902,16 @@ class _ProfileViewState extends State<ProfileView> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Laporan Saya',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: c.textPrimary,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.refresh, size: 20, color: AppColors.slate400),
+                    icon: Icon(Icons.refresh, size: 20, color: c.textMuted),
                     onPressed: _loadMyReports,
                   ),
                 ],
@@ -868,11 +924,11 @@ class _ProfileViewState extends State<ProfileView> {
                 child: CircularProgressIndicator(color: AppColors.accentAmber),
               )
             else if (_myReports.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(28),
+              Padding(
+                padding: const EdgeInsets.all(28),
                 child: Text(
                   'Anda belum membuat laporan apapun.',
-                  style: TextStyle(color: AppColors.slate400, fontSize: 13),
+                  style: TextStyle(color: c.textMuted, fontSize: 13),
                 ),
               )
             else
@@ -896,9 +952,9 @@ class _ProfileViewState extends State<ProfileView> {
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppColors.cardBg,
+                        color: c.cardBg,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.cardBorder),
+                        border: Border.all(color: c.cardBorder),
                       ),
                       child: Row(
                         children: [
@@ -919,16 +975,16 @@ class _ProfileViewState extends State<ProfileView> {
                               children: [
                                 Text(
                                   rep.namaBarang,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
-                                    color: Colors.white,
+                                    color: c.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   "${isHilang ? 'Hilang' : 'Temuan'} • ${rep.lokasi}",
-                                  style: const TextStyle(fontSize: 12, color: AppColors.slate400),
+                                  style: TextStyle(fontSize: 12, color: c.textMuted),
                                 ),
                               ],
                             ),
@@ -964,6 +1020,7 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Widget _buildInfoRow({
+    required FinditColors c,
     required IconData icon,
     required String label,
     required String value,
@@ -974,9 +1031,9 @@ class _ProfileViewState extends State<ProfileView> {
     final content = Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.cardBgLight,
+        color: c.cardBgLight,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.6)),
+        border: Border.all(color: c.cardBorder.withValues(alpha: 0.6)),
       ),
       child: Row(
         children: [
@@ -984,9 +1041,9 @@ class _ProfileViewState extends State<ProfileView> {
           const SizedBox(width: 12),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppColors.slate400,
+              color: c.textMuted,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -999,7 +1056,7 @@ class _ProfileViewState extends State<ProfileView> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: badgeColor ?? Colors.white,
+                color: badgeColor ?? c.textPrimary,
               ),
             ),
           ),

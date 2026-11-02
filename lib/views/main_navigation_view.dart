@@ -45,8 +45,10 @@ class _MainNavigationViewState extends State<MainNavigationView> {
 
   @override
   Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.appDark,
+      backgroundColor: c.scaffoldBg,
       body: IndexedStack(
         index: _currentIndex,
         children: _pages,
@@ -59,9 +61,9 @@ class _MainNavigationViewState extends State<MainNavigationView> {
           Container(
             height: 64,
             decoration: BoxDecoration(
-              color: const Color(0xFF142036).withValues(alpha: 0.98),
-              border: const Border(
-                top: BorderSide(color: Color(0xFF263753), width: 1),
+              color: c.navBarBg.withValues(alpha: 0.98),
+              border: Border(
+                top: BorderSide(color: c.navBarBorder, width: 1),
               ),
             ),
             child: Row(
@@ -117,7 +119,7 @@ class _MainNavigationViewState extends State<MainNavigationView> {
                   shape: BoxShape.circle,
                   color: AppColors.accentAmber,
                   border: Border.all(
-                    color: const Color(0xFF10192B),
+                    color: c.navBarFabBorder,
                     width: 4,
                   ),
                   boxShadow: [
@@ -147,6 +149,8 @@ class _MainNavigationViewState extends State<MainNavigationView> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final c = FinditColors.of(context);
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -155,7 +159,7 @@ class _MainNavigationViewState extends State<MainNavigationView> {
         child: Icon(
           isSelected ? icon : unselectedIcon,
           size: 24,
-          color: isSelected ? Colors.white : AppColors.slate400,
+          color: isSelected ? (c.isDark ? Colors.white : AppColors.accentAmber) : c.textMuted,
           shadows: isSelected
               ? [
                   Shadow(
