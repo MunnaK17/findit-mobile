@@ -372,6 +372,68 @@ class SupabaseService {
     }
   }
 
+  static Future<Map<String, dynamic>> updateReport({
+    required int id,
+    required String namaBarang,
+    required String deskripsi,
+    required String lokasi,
+    required String tanggalKejadian,
+    int? categoryId,
+    int? campusId,
+  }) async {
+    final user = client.auth.currentUser;
+    if (user == null) {
+      return {'success': false, 'message': 'Silakan login terlebih dahulu'};
+    }
+
+    try {
+      final updateData = <String, dynamic>{
+        'nama_barang': namaBarang,
+        'deskripsi': deskripsi,
+        'lokasi': lokasi,
+        'tanggal_kejadian': tanggalKejadian,
+      };
+      if (categoryId != null) updateData['id_category'] = categoryId;
+      if (campusId != null) updateData['id_campus'] = campusId;
+
+      await client.from('reports').update(updateData).eq('id', id);
+      return {'success': true, 'message': 'Laporan berhasil diperbarui'};
+    } catch (e) {
+      debugPrint("Error updateReport: $e");
+      return {'success': false, 'message': 'Gagal memperbarui laporan: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> markReportCompleted(int id) async {
+    final user = client.auth.currentUser;
+    if (user == null) {
+      return {'success': false, 'message': 'Silakan login terlebih dahulu'};
+    }
+
+    try {
+      await client.from('reports').update({'status': 'completed'}).eq('id', id);
+      return {'success': true, 'message': 'Laporan ditandai selesai / barang telah kembali'};
+    } catch (e) {
+      debugPrint("Error markReportCompleted: $e");
+      return {'success': false, 'message': 'Gagal mengubah status: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteReport(int id) async {
+    final user = client.auth.currentUser;
+    if (user == null) {
+      return {'success': false, 'message': 'Silakan login terlebih dahulu'};
+    }
+
+    try {
+      await client.from('reports').delete().eq('id', id);
+      return {'success': true, 'message': 'Laporan berhasil dihapus'};
+    } catch (e) {
+      debugPrint("Error deleteReport: $e");
+      return {'success': false, 'message': 'Gagal menghapus laporan: $e'};
+    }
+  }
+
   static Future<List<ClaimModel>> getMyClaims() async {
     final user = client.auth.currentUser;
     if (user == null) return [];

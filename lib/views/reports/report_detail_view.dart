@@ -1,48 +1,443 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/colors.dart';
 import '../../models/report_model.dart';
+import '../../services/auth_service.dart';
+import '../../services/report_service.dart';
 import '../claims/create_claim_view.dart';
 
-class ReportDetailView extends StatelessWidget {
+class ReportDetailView extends StatefulWidget {
   final ReportModel report;
 
   const ReportDetailView({super.key, required this.report});
 
   @override
+  State<ReportDetailView> createState() => _ReportDetailViewState();
+}
+
+class _ReportDetailViewState extends State<ReportDetailView> {
+  late ReportModel _report;
+  bool _isOwnerOrAdmin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _report = widget.report;
+    _checkOwnership();
+  }
+
+  Future<void> _checkOwnership() async {
+    final user = await AuthService.getCurrentUser();
+    if (mounted) {
+      setState(() {
+        _isOwnerOrAdmin = user != null &&
+            (user.isAdmin || (user.id == _report.idUser));
+      });
+    }
+  }
+
+  Future<void> _launchWhatsApp(String phone, String itemName) async {
+    var cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '62${cleanPhone.substring(1)}';
+    } else if (!cleanPhone.startsWith('62')) {
+      cleanPhone = '62$cleanPhone';
+    }
+
+    final message = Uri.encodeComponent(
+      "Halo, saya melihat laporan di aplikasi FindIT terkait barang: *$itemName*. Apakah barang tersebut masih ada / sudah bisa dikoordinasikan?",
+    );
+    final url = Uri.parse("https://wa.me/$cleanPhone?text=$message");
+
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Tidak dapat membuka WhatsApp"),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Gagal membuka WhatsApp: $e"),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    }
+  }
+
+  void _showEditDialog() {
+    final titleController = TextEditingController(text: _report.namaBarang);
+    final descController = TextEditingController(text: _report.deskripsi);
+    final locController = TextEditingController(text: _report.lokasi);
+    final dateController = TextEditingController(text: _report.tanggalKejadian);
+    final formKey = GlobalKey<FormState>();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final cs = FinditColors.of(context);
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+              decoration: BoxDecoration(
+                color: cs.sheetBg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 20,
+                    offset: Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: cs.cardBorder,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Edit Laporan Barang',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: cs.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: titleController,
+                      style: TextStyle(color: cs.inputText, fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Nama Barang',
+                        filled: true,
+                        fillColor: cs.inputFill,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cs.inputBorder)),
+                      ),
+                      validator: (v) => v == null || v.trim().isEmpty ? 'Nama barang wajib diisi' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: locController,
+                      style: TextStyle(color: cs.inputText, fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Lokasi',
+                        filled: true,
+                        fillColor: cs.inputFill,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cs.inputBorder)),
+                      ),
+                      validator: (v) => v == null || v.trim().isEmpty ? 'Lokasi wajib diisi' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: descController,
+                      maxLines: 3,
+                      style: TextStyle(color: cs.inputText, fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Deskripsi / Ciri Khusus',
+                        filled: true,
+                        fillColor: cs.inputFill,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cs.inputBorder)),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: BorderSide(color: cs.cardBorder),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: Text('Batal', style: TextStyle(color: cs.textSecondary)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              if (!formKey.currentState!.validate()) return;
+                              final messenger = ScaffoldMessenger.of(context);
+                              Navigator.pop(ctx);
+                              final res = await ReportService.updateReport(
+                                id: _report.id,
+                                namaBarang: titleController.text.trim(),
+                                deskripsi: descController.text.trim(),
+                                lokasi: locController.text.trim(),
+                                tanggalKejadian: dateController.text.trim(),
+                                categoryId: _report.idCategory,
+                                campusId: _report.idCampus,
+                              );
+                              if (!mounted) return;
+                              if (res['success'] == true) {
+                                setState(() {
+                                  _report = ReportModel(
+                                    id: _report.id,
+                                    idUser: _report.idUser,
+                                    idCategory: _report.idCategory,
+                                    idCampus: _report.idCampus,
+                                    namaBarang: titleController.text.trim(),
+                                    deskripsi: descController.text.trim(),
+                                    lokasi: locController.text.trim(),
+                                    tanggalKejadian: dateController.text.trim(),
+                                    fotoBarang: _report.fotoBarang,
+                                    status: _report.status,
+                                    jenisLaporan: _report.jenisLaporan,
+                                    campus: _report.campus,
+                                    category: _report.category,
+                                    user: _report.user,
+                                    createdAt: _report.createdAt,
+                                  );
+                                });
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Laporan berhasil diperbarui'),
+                                    backgroundColor: AppColors.success,
+                                  ),
+                                );
+                              } else {
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text(res['message'] ?? 'Gagal memperbarui'),
+                                    backgroundColor: AppColors.danger,
+                                  ),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.accentAmber,
+                              foregroundColor: AppColors.slate950,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 0,
+                            ),
+                            child: const Text('Simpan Perubahan', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _handleMarkCompleted() async {
+    final c = FinditColors.of(context);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: c.sheetBg,
+        title: Text('Konfirmasi Selesai', style: TextStyle(color: c.textPrimary)),
+        content: Text(
+          'Tandai barang ini telah berhasil dikembalikan ke pemilik aslinya?',
+          style: TextStyle(color: c.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Batal', style: TextStyle(color: c.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            child: const Text('Tandai Selesai', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      final res = await ReportService.markReportCompleted(_report.id);
+      if (!mounted) return;
+      if (res['success'] == true) {
+        setState(() {
+          _report = ReportModel(
+            id: _report.id,
+            idUser: _report.idUser,
+            idCategory: _report.idCategory,
+            idCampus: _report.idCampus,
+            namaBarang: _report.namaBarang,
+            deskripsi: _report.deskripsi,
+            lokasi: _report.lokasi,
+            tanggalKejadian: _report.tanggalKejadian,
+            fotoBarang: _report.fotoBarang,
+            status: 'completed',
+            jenisLaporan: _report.jenisLaporan,
+            campus: _report.campus,
+            category: _report.category,
+            user: _report.user,
+            createdAt: _report.createdAt,
+          );
+        });
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Status berhasil diubah: Selesai / Dikembalikan!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleDelete() async {
+    final c = FinditColors.of(context);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: c.sheetBg,
+        title: Text('Hapus Laporan', style: TextStyle(color: c.textPrimary)),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus laporan ini secara permanen?',
+          style: TextStyle(color: c.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Batal', style: TextStyle(color: c.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            child: const Text('Hapus', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      if (!mounted) return;
+      final navigator = Navigator.of(context);
+      final messenger = ScaffoldMessenger.of(context);
+      final res = await ReportService.deleteReport(_report.id);
+      if (!mounted) return;
+      if (res['success'] == true) {
+        navigator.pop(true);
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Laporan berhasil dihapus'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isHilang = report.isHilang;
+    final c = FinditColors.of(context);
+    final isHilang = _report.isHilang;
     final badgeColor = isHilang ? AppColors.accentAmber : AppColors.accentBlue;
+    final contactPhone = _report.user?.phone;
 
     return Scaffold(
-      backgroundColor: AppColors.appDark,
+      backgroundColor: c.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: AppColors.appDark,
+        backgroundColor: c.scaffoldBg,
         elevation: 0,
-        title: Text(report.namaBarang),
+        title: Text(_report.namaBarang, style: TextStyle(color: c.textPrimary)),
+        actions: [
+          if (_isOwnerOrAdmin)
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert_rounded, color: c.textPrimary),
+              color: c.sheetBg,
+              onSelected: (val) {
+                if (val == 'edit') _showEditDialog();
+                if (val == 'complete') _handleMarkCompleted();
+                if (val == 'delete') _handleDelete();
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined, size: 18, color: c.textPrimary),
+                      const SizedBox(width: 8),
+                      Text('Edit Laporan', style: TextStyle(color: c.textPrimary)),
+                    ],
+                  ),
+                ),
+                if (_report.status != 'completed')
+                  PopupMenuItem(
+                    value: 'complete',
+                    child: const Row(
+                      children: [
+                        Icon(Icons.check_circle_outline, size: 18, color: AppColors.success),
+                        SizedBox(width: 8),
+                        Text('Tandai Selesai', style: TextStyle(color: AppColors.success)),
+                      ],
+                    ),
+                  ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, size: 18, color: AppColors.danger),
+                      SizedBox(width: 8),
+                      Text('Hapus Laporan', style: TextStyle(color: AppColors.danger)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Image section
-            if (report.fullFotoUrl != null)
+            if (_report.fullFotoUrl != null)
               Image.network(
-                report.fullFotoUrl!,
+                _report.fullFotoUrl!,
                 height: 260,
                 width: double.infinity,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
                   height: 200,
-                  color: AppColors.cardBgNavy,
-                  child: const Center(
-                    child: Icon(Icons.broken_image, size: 60, color: AppColors.slate400),
+                  color: c.cardBgLight,
+                  child: Center(
+                    child: Icon(Icons.broken_image, size: 60, color: c.textMuted),
                   ),
                 ),
               )
             else
               Container(
                 height: 180,
-                color: AppColors.cardBgNavy,
+                color: c.cardBgLight,
                 child: Center(
                   child: Icon(
                     isHilang ? Icons.warning_amber_rounded : Icons.search_rounded,
@@ -80,13 +475,13 @@ class ReportDetailView extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: _getStatusColor(report.status).withValues(alpha: 0.15),
+                          color: _getStatusColor(_report.status).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          _getStatusLabel(report.status),
+                          _getStatusLabel(_report.status),
                           style: TextStyle(
-                            color: _getStatusColor(report.status),
+                            color: _getStatusColor(_report.status),
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -98,11 +493,11 @@ class ReportDetailView extends StatelessWidget {
 
                   // Title
                   Text(
-                    report.namaBarang,
-                    style: const TextStyle(
+                    _report.namaBarang,
+                    style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: c.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -111,36 +506,40 @@ class ReportDetailView extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.cardBg,
+                      color: c.cardBg,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: AppColors.cardBorder),
+                      border: Border.all(color: c.cardBorder),
                     ),
                     child: Column(
                       children: [
-                        if (report.campus != null) ...[
+                        if (_report.campus != null) ...[
                           _buildInfoTile(
+                            c: c,
                             icon: Icons.domain_rounded,
                             label: 'Cabang Kampus',
-                            value: "${report.campus!.namaKampus} (${report.campus!.kota})",
+                            value: "${_report.campus!.namaKampus} (${_report.campus!.kota})",
                           ),
-                          const Divider(height: 16, color: AppColors.cardBorder),
+                          Divider(height: 16, color: c.cardBorder),
                         ],
                         _buildInfoTile(
+                          c: c,
                           icon: Icons.category_outlined,
                           label: 'Kategori',
-                          value: report.category?.namaKategori ?? 'Umum',
+                          value: _report.category?.namaKategori ?? 'Umum',
                         ),
-                        const Divider(height: 16, color: AppColors.cardBorder),
+                        Divider(height: 16, color: c.cardBorder),
                         _buildInfoTile(
+                          c: c,
                           icon: Icons.calendar_today_outlined,
                           label: 'Tanggal Kejadian',
-                          value: report.tanggalKejadian,
+                          value: _report.tanggalKejadian,
                         ),
-                        const Divider(height: 16, color: AppColors.cardBorder),
+                        Divider(height: 16, color: c.cardBorder),
                         _buildInfoTile(
+                          c: c,
                           icon: Icons.location_on_outlined,
                           label: 'Lokasi',
-                          value: report.lokasi,
+                          value: _report.lokasi,
                         ),
                       ],
                     ),
@@ -149,12 +548,12 @@ class ReportDetailView extends StatelessWidget {
                   const SizedBox(height: 24),
 
                   // Deskripsi
-                  const Text(
+                  Text(
                     'Deskripsi / Ciri Khusus',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: c.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -162,119 +561,145 @@ class ReportDetailView extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.cardBg,
+                      color: c.cardBg,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.cardBorder),
+                      border: Border.all(color: c.cardBorder),
                     ),
                     child: Text(
-                      report.deskripsi.isNotEmpty
-                          ? report.deskripsi
+                      _report.deskripsi.isNotEmpty
+                          ? _report.deskripsi
                           : 'Tidak ada deskripsi tambahan.',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.slate300,
+                        color: c.textSecondary,
                         height: 1.5,
                       ),
                     ),
                   ),
 
-                  // Pelapor
-                  if (report.user != null) ...[
+                  // Pelapor Card & Direct WhatsApp Button
+                  if (_report.user != null) ...[
                     const SizedBox(height: 24),
-                    const Text(
+                    Text(
                       'Informasi Pelapor',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: c.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppColors.cardBg,
+                        color: c.cardBg,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.cardBorder),
+                        border: Border.all(color: c.cardBorder),
                       ),
-                      child: Row(
+                      child: Column(
                         children: [
-                          CircleAvatar(
-                            backgroundColor: AppColors.accentAmber.withValues(alpha: 0.15),
-                            child: const Icon(Icons.person, color: AppColors.accentAmber),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: AppColors.accentAmber.withValues(alpha: 0.15),
+                                child: const Icon(Icons.person, color: AppColors.accentAmber),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      report.user!.name,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        color: Colors.white,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          _report.user!.name,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            color: c.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: _report.user!.isStaff
+                                                ? AppColors.bsiTeal.withValues(alpha: 0.15)
+                                                : AppColors.accentAmber.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            _report.user!.roleLabel,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: _report.user!.isStaff ? AppColors.bsiTeal : AppColors.accentAmber,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: report.user!.isStaff
-                                            ? AppColors.bsiTeal.withValues(alpha: 0.15)
-                                            : AppColors.accentAmber.withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        report.user!.roleLabel,
+                                    if (_report.user!.nip != null && _report.user!.nip!.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        "NIP: ${_report.user!.nip}",
                                         style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: report.user!.isStaff ? AppColors.bsiTeal : AppColors.accentAmber,
+                                          fontSize: 12,
+                                          color: c.textMuted,
                                         ),
                                       ),
-                                    ),
+                                    ] else if (_report.user!.nim != null && _report.user!.nim!.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        "NIM: ${_report.user!.nim}",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: c.textMuted,
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
-                                if (report.user!.nip != null && report.user!.nip!.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    "NIP: ${report.user!.nip}",
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.slate400,
-                                    ),
-                                  ),
-                                ] else if (report.user!.nim != null && report.user!.nim!.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    "NIM: ${report.user!.nim}",
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.slate400,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
+
+                          // Direct WhatsApp Button if phone available
+                          if (contactPhone != null && contactPhone.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Divider(height: 1, color: c.cardBorder),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () => _launchWhatsApp(contactPhone, _report.namaBarang),
+                                icon: const Icon(Icons.chat_rounded, color: Colors.white, size: 18),
+                                label: const Text('Hubungi via WhatsApp (Pelapor)'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF25D366),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(vertical: 11),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
                   ],
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
 
                   // Claim button if eligible
-                  if (report.canBeClaimed)
+                  if (_report.canBeClaimed) ...[
                     ElevatedButton.icon(
                       onPressed: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => CreateClaimView(report: report),
+                            builder: (_) => CreateClaimView(report: _report),
                           ),
                         );
                       },
@@ -289,6 +714,25 @@ class ReportDetailView extends StatelessWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Action for owner: Mark Completed button directly
+                  if (_isOwnerOrAdmin && _report.status != 'completed') ...[
+                    OutlinedButton.icon(
+                      onPressed: _handleMarkCompleted,
+                      icon: const Icon(Icons.check_circle_outline, color: AppColors.accentEmerald),
+                      label: const Text('Tandai Barang Berhasil Kembali ke Pemilik'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.accentEmerald,
+                        side: const BorderSide(color: AppColors.accentEmerald),
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 30),
                 ],
               ),
             ),
@@ -299,6 +743,7 @@ class ReportDetailView extends StatelessWidget {
   }
 
   Widget _buildInfoTile({
+    required FinditColors c,
     required IconData icon,
     required String label,
     required String value,
@@ -316,18 +761,18 @@ class ReportDetailView extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.slate400,
+                    color: c.textMuted,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: c.textPrimary,
                   ),
                 ),
               ],

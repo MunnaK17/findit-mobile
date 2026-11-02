@@ -52,4 +52,32 @@ class ReportService {
       imageFile: imageFile,
     );
   }
+
+  static Future<Map<String, dynamic>> updateReport({
+    required int id,
+    required String namaBarang,
+    required String deskripsi,
+    required String lokasi,
+    required String tanggalKejadian,
+    int? categoryId,
+    int? campusId,
+  }) async {
+    return await SupabaseService.updateReport(
+      id: id,
+      namaBarang: namaBarang,
+      deskripsi: deskripsi,
+      lokasi: lokasi,
+      tanggalKejadian: tanggalKejadian,
+      categoryId: categoryId,
+      campusId: campusId,
+    );
+  }
+
+  static Future<Map<String, dynamic>> markReportCompleted(int id) async {
+    return await SupabaseService.markReportCompleted(id);
+  }
+
+  static Future<Map<String, dynamic>> deleteReport(int id) async {
+    return await SupabaseService.deleteReport(id);
+  }
 }

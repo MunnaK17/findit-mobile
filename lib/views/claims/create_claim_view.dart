@@ -39,17 +39,19 @@ class _CreateClaimViewState extends State<CreateClaimView> {
 
     if (!mounted) return;
 
+    final c = FinditColors.of(context);
+
     if (res['success'] == true) {
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (_) => AlertDialog(
-          backgroundColor: AppColors.cardBg,
+          backgroundColor: c.sheetBg,
           icon: const Icon(Icons.check_circle_outline, color: AppColors.accentEmerald, size: 50),
-          title: const Text('Klaim Berhasil Dikirim!', style: TextStyle(color: Colors.white)),
-          content: const Text(
+          title: Text('Klaim Berhasil Dikirim!', style: TextStyle(color: c.textPrimary)),
+          content: Text(
             'Pengajuan klaim Anda telah dicatat. Admin dan penemu barang akan memeriksa informasi yang Anda berikan.',
-            style: TextStyle(color: AppColors.slate300),
+            style: TextStyle(color: c.textSecondary),
           ),
           actions: [
             ElevatedButton(
@@ -74,12 +76,14 @@ class _CreateClaimViewState extends State<CreateClaimView> {
 
   @override
   Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.appDark,
+      backgroundColor: c.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: AppColors.appDark,
+        backgroundColor: c.scaffoldBg,
         elevation: 0,
-        title: const Text('Ajukan Klaim Barang'),
+        title: Text('Ajukan Klaim Barang', style: TextStyle(color: c.textPrimary)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -92,39 +96,33 @@ class _CreateClaimViewState extends State<CreateClaimView> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.cardBg,
+                  color: c.cardBg,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.cardBorder),
+                  border: Border.all(color: c.cardBorder),
                 ),
                 child: Row(
                   children: [
-                    if (widget.report.fullFotoUrl != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          widget.report.fullFotoUrl!,
-                          width: 64,
-                          height: 64,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: 64,
-                            height: 64,
-                            color: AppColors.cardBgLight,
-                            child: const Icon(Icons.inventory_2_outlined, color: AppColors.slate400),
-                          ),
-                        ),
-                      )
-                    else
-                      Container(
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
                         width: 64,
                         height: 64,
-                        decoration: BoxDecoration(
-                          color: AppColors.accentBlue.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.accentBlue.withValues(alpha: 0.3)),
-                        ),
-                        child: const Icon(Icons.inventory_2_outlined, color: AppColors.accentBlue),
+                        color: c.cardBgLight,
+                        child: widget.report.fullFotoUrl != null
+                            ? Image.network(
+                                widget.report.fullFotoUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Icon(
+                                  Icons.inventory_2_outlined,
+                                  color: c.textMuted,
+                                ),
+                              )
+                            : Icon(
+                                Icons.inventory_2_outlined,
+                                color: c.textMuted,
+                              ),
                       ),
+                    ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
@@ -132,20 +130,58 @@ class _CreateClaimViewState extends State<CreateClaimView> {
                         children: [
                           Text(
                             widget.report.namaBarang,
-                            style: const TextStyle(
+                            style: TextStyle(
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                              color: Colors.white,
+                              color: c.textPrimary,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 4),
                           Text(
-                            "Lokasi: ${widget.report.lokasi}",
-                            style: const TextStyle(
+                            "${widget.report.campus?.namaKampus ?? ''} • ${widget.report.lokasi}",
+                            style: TextStyle(fontSize: 12, color: c.textMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Instructions / tips
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: c.cardBgLight,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: c.cardBorder),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.info_outline, color: AppColors.accentAmber, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Tips Verifikasi Klaim',
+                            style: TextStyle(
+                              color: c.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Sebutkan ciri spesifik yang belum tertulis di deskripsi umum (seperti isi dalam dompet, wallpaper HP, stiker casing, atau nota pembelian) untuk membuktikan kepemilikan Anda.',
+                            style: TextStyle(
+                              color: c.textSecondary,
                               fontSize: 12,
-                              color: AppColors.slate400,
+                              height: 1.4,
                             ),
                           ),
                         ],
@@ -157,76 +193,60 @@ class _CreateClaimViewState extends State<CreateClaimView> {
 
               const SizedBox(height: 20),
 
-              // Instructions
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.accentBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.accentBlue.withValues(alpha: 0.25)),
-                ),
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.info_outline, color: AppColors.accentBlue, size: 20),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Untuk memverifikasi bahwa barang ini milik Anda, jelaskan ciri-ciri khusus (warna, bekas goresan, isi dalam tas/dompet, wallpaper HP, nomor seri, dll).',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: AppColors.slate300,
-                          height: 1.45,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              const Text(
-                'Bukti Kepemilikan & Ciri Khusus *',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
+              // Bukti kepemilikan / Pesan klaim
               TextFormField(
                 controller: _pesanController,
-                maxLines: 5,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: 'Contoh: Dompet warna coklat tua, ada gantungan kunci huruf A, di dalamnya ada kartu mahasiswa atas nama...',
+                maxLines: 6,
+                style: TextStyle(color: c.inputText, fontSize: 14),
+                decoration: InputDecoration(
+                  labelText: 'Deskripsi Bukti Kepemilikan *',
+                  hintText: 'Jelaskan sedetail mungkin bukti bahwa barang ini adalah milik Anda...',
+                  alignLabelWithHint: true,
+                  filled: true,
+                  fillColor: c.inputFill,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: c.inputBorder),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: c.inputBorder),
+                  ),
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
-                    return 'Mohon jelaskan bukti kepemilikan Anda';
+                    return 'Bukti kepemilikan wajib diisi';
                   }
-                  if (val.trim().length < 10) {
-                    return 'Penjelasan terlalu singkat (minimal 10 karakter)';
+                  if (val.trim().length < 15) {
+                    return 'Deskripsi terlalu singkat. Berikan minimal 15 karakter';
                   }
                   return null;
                 },
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 30),
 
+              // Submit Button
               ElevatedButton(
                 onPressed: _isLoading ? null : _submitClaim,
                 style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
+                  backgroundColor: AppColors.accentAmber,
+                  foregroundColor: AppColors.slate950,
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: _isLoading
                     ? const SizedBox(
-                        height: 22,
-                        width: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.slate950),
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(color: AppColors.slate950, strokeWidth: 2),
                       )
-                    : const Text('Kirim Pengajuan Klaim'),
+                    : const Text(
+                        'Kirim Pengajuan Klaim',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
               ),
             ],
           ),

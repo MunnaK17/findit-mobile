@@ -100,7 +100,7 @@ class _ChatbotViewState extends State<ChatbotView> {
         context,
         MaterialPageRoute(builder: (_) => const CreateReportView()),
       );
-    } else if (url.contains('claim') || url.contains('klaim')) {
+    } else if (url.contains('klaim') || url.contains('claim')) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const MyClaimsView()),
@@ -110,29 +110,50 @@ class _ChatbotViewState extends State<ChatbotView> {
 
   @override
   Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.appDark,
+      backgroundColor: c.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: AppColors.appDark,
+        backgroundColor: c.scaffoldBg,
         elevation: 0,
-        title: const Row(
+        title: Row(
           children: [
-            CircleAvatar(
-              radius: 17,
-              backgroundColor: AppColors.accentAmber,
-              child: Icon(Icons.smart_toy_rounded, color: AppColors.slate950, size: 20),
+            Container(
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
+                ),
+              ),
+              child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 22),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'FindBot Assistant',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: c.textPrimary),
                 ),
-                Text(
-                  'Online • Siap membantu',
-                  style: TextStyle(fontSize: 11, color: AppColors.accentEmerald, fontWeight: FontWeight.w600),
+                Row(
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.accentEmerald,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Online • Siap Membantu',
+                      style: TextStyle(fontSize: 11, color: c.textMuted),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -141,80 +162,116 @@ class _ChatbotViewState extends State<ChatbotView> {
       ),
       body: Column(
         children: [
+          // Chat message list
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               itemCount: _messages.length,
               itemBuilder: (context, index) {
-                final message = _messages[index];
-                return _buildMessageItem(message);
+                final msg = _messages[index];
+                return _buildMessageItem(c, msg);
               },
             ),
           ),
 
+          // Typing indicator
           if (_isTyping)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
               child: Row(
                 children: [
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.accentAmber,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: c.cardBg,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: c.cardBorder),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  const Text(
-                    'FindBot sedang mengetik...',
-                    style: TextStyle(color: AppColors.slate400, fontSize: 12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accentAmber),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'FindBot sedang mengetik...',
+                          style: TextStyle(fontSize: 12, color: c.textMuted),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
 
-          // Bottom Input bar
+          // Quick replies
+          if (_messages.isNotEmpty && _messages.last.quickReplies.isNotEmpty && !_isTyping)
+            Container(
+              height: 42,
+              margin: const EdgeInsets.only(bottom: 6),
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _messages.last.quickReplies.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, idx) {
+                  final text = _messages.last.quickReplies[idx];
+                  return ActionChip(
+                    backgroundColor: c.chipBg,
+                    side: BorderSide(color: c.chipBorder),
+                    label: Text(
+                      text,
+                      style: TextStyle(fontSize: 12, color: c.textPrimary, fontWeight: FontWeight.w600),
+                    ),
+                    onPressed: () => _sendMessage(text),
+                  );
+                },
+              ),
+            ),
+
+          // Input field bar
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFF142036),
-              border: Border(top: BorderSide(color: AppColors.cardBorder, width: 1)),
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 16),
+            decoration: BoxDecoration(
+              color: c.cardBg,
+              border: Border(top: BorderSide(color: c.cardBorder)),
             ),
             child: SafeArea(
               child: Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: 'Tanyakan sesuatu pada FindBot...',
-                        hintStyle: const TextStyle(color: AppColors.slate400, fontSize: 13),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(color: AppColors.cardBorder),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(color: AppColors.cardBorder),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(color: AppColors.accentAmber, width: 1.5),
-                        ),
-                        filled: true,
-                        fillColor: AppColors.appDark,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: c.inputFill,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: c.inputBorder),
                       ),
-                      onSubmitted: _sendMessage,
+                      child: TextField(
+                        controller: _textController,
+                        style: TextStyle(color: c.inputText, fontSize: 14),
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: _sendMessage,
+                        decoration: InputDecoration(
+                          hintText: 'Tanyakan sesuatu seputar barang hilang...',
+                          hintStyle: TextStyle(color: c.inputHint, fontSize: 13),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  CircleAvatar(
-                    backgroundColor: AppColors.accentAmber,
-                    radius: 22,
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.accentAmber,
+                    ),
                     child: IconButton(
                       icon: const Icon(Icons.send_rounded, color: AppColors.slate950, size: 20),
                       onPressed: () => _sendMessage(_textController.text),
@@ -229,103 +286,81 @@ class _ChatbotViewState extends State<ChatbotView> {
     );
   }
 
-  Widget _buildMessageItem(ChatMessageModel message) {
-    final isUser = message.isUser;
+  Widget _buildMessageItem(FinditColors c, ChatMessageModel msg) {
+    final isUser = msg.isUser;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (!isUser) ...[
-                const CircleAvatar(
-                  radius: 15,
-                  backgroundColor: AppColors.accentAmber,
-                  child: Icon(Icons.smart_toy_rounded, color: AppColors.slate950, size: 17),
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: AppColors.accentBlue.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.smart_toy_rounded, color: AppColors.accentBlue, size: 16),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
               ],
               Flexible(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: isUser ? AppColors.accentAmber : AppColors.cardBgLight,
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(18),
-                      topRight: const Radius.circular(18),
-                      bottomLeft: Radius.circular(isUser ? 18 : 4),
-                      bottomRight: Radius.circular(isUser ? 4 : 18),
+                    color: isUser
+                        ? AppColors.accentAmber
+                        : c.cardBg,
+                    borderRadius: BorderRadius.circular(18).copyWith(
+                      bottomRight: isUser ? const Radius.circular(4) : const Radius.circular(18),
+                      bottomLeft: !isUser ? const Radius.circular(4) : const Radius.circular(18),
                     ),
-                    border: isUser ? null : Border.all(color: AppColors.cardBorder),
+                    border: isUser ? null : Border.all(color: c.cardBorder),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: c.isDark ? 0.15 : 0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Text(
-                    message.text,
+                    msg.text,
                     style: TextStyle(
-                      color: isUser ? AppColors.slate950 : Colors.white,
-                      fontSize: 14,
+                      color: isUser ? AppColors.slate950 : c.textPrimary,
+                      fontSize: 13.5,
                       height: 1.45,
-                      fontWeight: isUser ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight: isUser ? FontWeight.w600 : FontWeight.normal,
                     ),
                   ),
                 ),
               ),
-              if (isUser) ...[
-                const SizedBox(width: 10),
-                const CircleAvatar(
-                  radius: 15,
-                  backgroundColor: AppColors.cardBgLight,
-                  child: Icon(Icons.person, color: AppColors.accentAmber, size: 18),
-                ),
-              ],
             ],
           ),
-
-          // Action button if available
-          if (message.action != null && message.action!.label.isNotEmpty)
+          if (msg.action != null) ...[
+            const SizedBox(height: 8),
             Padding(
-              padding: const EdgeInsets.only(top: 8, left: 40),
+              padding: const EdgeInsets.only(left: 38),
               child: ElevatedButton.icon(
-                onPressed: () => _handleAction(message.action!),
-                icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                label: Text(message.action!.label),
+                onPressed: () => _handleAction(msg.action!),
+                icon: const Icon(Icons.open_in_new_rounded, size: 15),
+                label: Text(msg.action!.label),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accentAmber,
-                  foregroundColor: AppColors.slate950,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  backgroundColor: AppColors.accentBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
                 ),
               ),
             ),
-
-          // Quick replies
-          if (message.quickReplies.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 10, left: 40),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: message.quickReplies.map((reply) {
-                  return ActionChip(
-                    label: Text(
-                      reply,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.slate300,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    backgroundColor: AppColors.cardBgNavy,
-                    side: const BorderSide(color: AppColors.cardBorder),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    onPressed: () => _sendMessage(reply),
-                  );
-                }).toList(),
-              ),
-            ),
+          ],
         ],
       ),
     );
