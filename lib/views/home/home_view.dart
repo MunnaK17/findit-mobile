@@ -8,7 +8,6 @@ import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/report_service.dart';
 import '../../services/supabase_service.dart';
-import '../chat/chatbot_view.dart';
 import '../reports/create_report_view.dart';
 import 'widgets/report_card.dart';
 
@@ -511,25 +510,6 @@ class _HomeViewState extends State<HomeView> {
                       ),
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.actionBlue,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  tooltip: 'Tanya FindBot',
-                  icon: const Icon(Icons.support_agent_rounded, color: Colors.white, size: 20),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ChatbotView()),
-                    );
-                  },
                 ),
               ),
               const SizedBox(width: 8),

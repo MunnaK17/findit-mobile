@@ -1,5 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../core/constants/colors.dart';
+import 'chat/chatbot_view.dart';
 import 'home/home_view.dart';
 import 'reports/create_report_view.dart';
 import 'search/search_view.dart';
@@ -52,6 +53,44 @@ class _MainNavigationViewState extends State<MainNavigationView> {
         index: _currentIndex,
         children: _pages,
       ),
+      floatingActionButton: Semantics(
+        button: true,
+        label: 'Tanya FindBot Asisten AI',
+        child: Tooltip(
+          message: 'Tanya FindBot',
+          child: Material(
+            color: AppColors.actionBlue,
+            elevation: 6,
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ChatbotView()),
+                );
+              },
+              customBorder: const CircleBorder(),
+              child: Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    width: 1.5,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.support_agent_rounded,
+                  color: Colors.white,
+                  size: 26,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: SafeArea(
         top: false,
         child: Stack(
