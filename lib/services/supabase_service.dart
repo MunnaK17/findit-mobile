@@ -461,6 +461,26 @@ class SupabaseService {
     }
   }
 
+  static Future<bool> hasClaimed(int reportId) async {
+    final user = client.auth.currentUser;
+    if (user == null) return false;
+
+    try {
+      final res = await client
+          .from('claims')
+          .select('id')
+          .eq('id_report', reportId)
+          .eq('id_user', user.id)
+          .neq('status_klaim', 'rejected')
+          .maybeSingle();
+
+      return res != null;
+    } catch (e) {
+      debugPrint("Error checking hasClaimed: $e");
+      return false;
+    }
+  }
+
   static Future<Map<String, dynamic>> createClaim({
     required int reportId,
     required String pesanKlaim,
@@ -472,6 +492,36 @@ class SupabaseService {
     }
 
     try {
+      // 1. Cek apakah ini laporan milik sendiri
+      final reportRes = await client
+          .from('reports')
+          .select('id_user')
+          .eq('id', reportId)
+          .maybeSingle();
+
+      if (reportRes != null && reportRes['id_user']?.toString() == user.id.toString()) {
+        return {
+          'success': false,
+          'message': 'Anda tidak bisa mengklaim laporan milik Anda sendiri.',
+        };
+      }
+
+      // 2. Cek apakah user sudah pernah mengajukan klaim untuk laporan ini (selain status rejected)
+      final existingClaim = await client
+          .from('claims')
+          .select('id')
+          .eq('id_report', reportId)
+          .eq('id_user', user.id)
+          .neq('status_klaim', 'rejected')
+          .maybeSingle();
+
+      if (existingClaim != null) {
+        return {
+          'success': false,
+          'message': 'Anda sudah pernah mengajukan klaim untuk barang ini.',
+        };
+      }
+
       final res = await client.from('claims').insert({
         'id_report': reportId,
         'id_user': user.id,

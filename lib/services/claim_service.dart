@@ -1,9 +1,13 @@
-﻿import '../models/claim_model.dart';
+import '../models/claim_model.dart';
 import 'supabase_service.dart';
 
 class ClaimService {
   static Future<List<ClaimModel>> getMyClaims() async {
     return await SupabaseService.getMyClaims();
+  }
+
+  static Future<bool> hasClaimed(int reportId) async {
+    return await SupabaseService.hasClaimed(reportId);
   }
 
   static Future<Map<String, dynamic>> submitClaim({

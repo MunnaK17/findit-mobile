@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
 import '../../models/report_model.dart';
 import '../../services/auth_service.dart';
+import '../../services/claim_service.dart';
 import '../../services/report_service.dart';
 import '../claims/create_claim_view.dart';
 
@@ -17,6 +18,7 @@ class ReportDetailView extends StatefulWidget {
 class _ReportDetailViewState extends State<ReportDetailView> {
   late ReportModel _report;
   bool _isOwnerOrAdmin = false;
+  bool _hasClaimed = false;
 
   @override
   void initState() {
@@ -27,10 +29,15 @@ class _ReportDetailViewState extends State<ReportDetailView> {
 
   Future<void> _checkOwnership() async {
     final user = await AuthService.getCurrentUser();
+    bool claimed = false;
+    if (user != null && _report.canBeClaimed) {
+      claimed = await ClaimService.hasClaimed(_report.id);
+    }
     if (mounted) {
       setState(() {
         _isOwnerOrAdmin = user != null &&
             (user.isAdmin || (user.id == _report.idUser));
+        _hasClaimed = claimed;
       });
     }
   }
@@ -609,27 +616,85 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                     ),
                   ],
                   if (_report.canBeClaimed && !_isOwnerOrAdmin) ...[
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => CreateClaimView(report: _report),
+                    if (_hasClaimed)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: c.cardBgLight,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.accentAmber.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentAmber.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.hourglass_top_rounded,
+                                color: AppColors.accentAmber,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Klaim Sudah Diajukan',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      color: c.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    'Anda sudah mengajukan klaim untuk barang ini. Pantau status verifikasinya di menu Klaim Saya.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: c.textSecondary,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CreateClaimView(report: _report),
+                              ),
+                            );
+                            if (result == true) {
+                              _checkOwnership();
+                            }
+                          },
+                          icon: const Icon(Icons.verified_user_rounded, color: AppColors.slate950),
+                          label: const Text('Klaim Barang Ini'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accentAmber,
+                            foregroundColor: AppColors.slate950,
+                            minimumSize: const Size.fromHeight(50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                        );
-                      },
-                      icon: const Icon(Icons.verified_user_rounded, color: AppColors.slate950),
-                      label: const Text('Klaim Barang Ini'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accentAmber,
-                        foregroundColor: AppColors.slate950,
-                        minimumSize: const Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
                   ],
                   if (_report.isTemuan && _report.status != 'completed') ...[
                     Container(

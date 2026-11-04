@@ -57,7 +57,7 @@ class _CreateClaimViewState extends State<CreateClaimView> {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                Navigator.pop(context);
+                Navigator.pop(context, true);
               },
               child: const Text('Selesai'),
             ),
