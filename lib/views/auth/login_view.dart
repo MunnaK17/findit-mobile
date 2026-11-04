@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../main.dart';
@@ -86,8 +86,13 @@ class _LoginViewState extends State<LoginView> {
 
     setState(() => _isLoading = true);
 
+    var rawInput = _emailController.text.trim();
+    if (!rawInput.contains('@')) {
+      rawInput = '$rawInput@bsi.ac.id';
+    }
+
     final res = await AuthService.login(
-      _emailController.text.trim(),
+      rawInput,
       _passwordController.text,
     );
 
@@ -225,7 +230,7 @@ class _LoginViewState extends State<LoginView> {
                   ),
                   const SizedBox(height: 32),
                   Text(
-                    'Email Mahasiswa / Akun',
+                    'Email Mahasiswa / Username',
                     style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
                   ),
                   const SizedBox(height: 6),
@@ -234,12 +239,11 @@ class _LoginViewState extends State<LoginView> {
                     keyboardType: TextInputType.emailAddress,
                     style: TextStyle(color: c.inputText),
                     decoration: InputDecoration(
-                      hintText: 'nama@bsi.ac.id',
+                      hintText: 'nama@bsi.ac.id atau username',
                       prefixIcon: Icon(Icons.email_outlined, color: c.inputHint),
                     ),
                     validator: (val) {
-                      if (val == null || val.trim().isEmpty) return 'Email wajib diisi';
-                      if (!val.contains('@')) return 'Format email tidak valid';
+                      if (val == null || val.trim().isEmpty) return 'Email atau username wajib diisi';
                       return null;
                     },
                   ),
