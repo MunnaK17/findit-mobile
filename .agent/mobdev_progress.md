@@ -27,6 +27,9 @@
      - Memperbaiki RLS policy tabel `storage.objects` di Supabase untuk mengizinkan operasi `UPDATE` dan `DELETE` pada bucket `reports` (sebelumnya menyebabkan 403 saat `upsert: true`).
      - Menambahkan izin `CAMERA`, `READ_EXTERNAL_STORAGE`, `READ_MEDIA_IMAGES`, dan `INTERNET` pada `AndroidManifest.xml`.
      - Mengubah mekanisme upload pada `create_report_view.dart` dan `supabase_service.dart` menggunakan buffer `Uint8List` mentah dengan normalisasi MIME type (`image/jpeg`, `image/png`, `image/webp`).
+  5. **Floating FindBot Widget (Pojok Kanan Bawah):**
+     - Menghapus tombol Tanya FindBot dari header atas `HomeView` sehingga ruang filter kampus lebih luas.
+     - Menjadikan tombol Tanya FindBot sebagai Floating Action Button (FAB) melayang di pojok kanan bawah pada `MainNavigationView`, serasi dengan versi web.
   - Status QA & Build: `flutter analyze` 0 Error, Debug APK berhasil diperbarui di `FindIT.apk`.
 
 ## 3. Catatan Teknis, Keamanan & Next Steps
