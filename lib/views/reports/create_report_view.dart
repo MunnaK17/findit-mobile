@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -221,11 +221,11 @@ class _CreateReportViewState extends State<CreateReportView> {
         barrierDismissible: false,
         builder: (_) => AlertDialog(
           backgroundColor: c.sheetBg,
-          icon: Icon(Icons.check_circle_outline, color: c.successText, size: 50),
-          title: Text('Laporan Berhasil Dibuat', style: TextStyle(color: c.textPrimary)),
+          icon: Icon(Icons.pending_actions_rounded, color: c.amberText, size: 50),
+          title: Text('Laporan Berhasil Diajukan', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w700)),
           content: Text(
-            'Laporan barang ${_jenisLaporan == "hilang" ? "kehilangan" : "temuan"} Anda telah disimpan dan aktif di daftar laporan kampus.',
-            style: TextStyle(color: c.textSecondary),
+            'Laporan barang ${_jenisLaporan == "hilang" ? "kehilangan" : "temuan"} Anda telah disimpan dan berstatus "Menunggu Verifikasi".\n\nAdmin akan memeriksa dan memvalidasi keaslian laporan via dashboard website sebelum dipublikasikan ke beranda publik.',
+            style: TextStyle(color: c.textSecondary, height: 1.4),
           ),
           actions: [
             ElevatedButton(
@@ -233,7 +233,7 @@ class _CreateReportViewState extends State<CreateReportView> {
                 Navigator.pop(context);
                 Navigator.pop(context, true);
               },
-              child: const Text('Lihat Laporan'),
+              child: const Text('Ke Laporan Saya'),
             ),
           ],
         ),

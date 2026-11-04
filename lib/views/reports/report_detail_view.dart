@@ -243,69 +243,6 @@ class _ReportDetailViewState extends State<ReportDetailView> {
     );
   }
 
-  Future<void> _handleMarkCompleted() async {
-    final c = FinditColors.of(context);
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: c.sheetBg,
-        title: Text('Konfirmasi Selesai', style: TextStyle(color: c.textPrimary)),
-        content: Text(
-          'Tandai barang ini telah berhasil dikembalikan ke pemilik aslinya?',
-          style: TextStyle(color: c.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Batal', style: TextStyle(color: c.textMuted)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Tandai Selesai'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      final res = await ReportService.markReportCompleted(_report.id);
-      if (!mounted) return;
-      if (res['success'] == true) {
-        setState(() {
-          _report = ReportModel(
-            id: _report.id,
-            idUser: _report.idUser,
-            idCategory: _report.idCategory,
-            idCampus: _report.idCampus,
-            namaBarang: _report.namaBarang,
-            deskripsi: _report.deskripsi,
-            lokasi: _report.lokasi,
-            tanggalKejadian: _report.tanggalKejadian,
-            fotoBarang: _report.fotoBarang,
-            status: 'completed',
-            jenisLaporan: _report.jenisLaporan,
-            campus: _report.campus,
-            category: _report.category,
-            user: _report.user,
-            createdAt: _report.createdAt,
-          );
-        });
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Status berhasil diubah menjadi Selesai / Dikembalikan'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      }
-    }
-  }
-
   Future<void> _handleDelete() async {
     final c = FinditColors.of(context);
     final confirm = await showDialog<bool>(
@@ -376,7 +313,6 @@ class _ReportDetailViewState extends State<ReportDetailView> {
               color: c.sheetBg,
               onSelected: (val) {
                 if (val == 'edit') _showEditDialog();
-                if (val == 'complete') _handleMarkCompleted();
                 if (val == 'delete') _handleDelete();
               },
               itemBuilder: (_) => [
@@ -390,17 +326,6 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                     ],
                   ),
                 ),
-                if (_report.status != 'completed')
-                  PopupMenuItem(
-                    value: 'complete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.check_circle_outline, size: 18, color: c.successText),
-                        const SizedBox(width: 8),
-                        Text('Tandai Selesai', style: TextStyle(color: c.successText)),
-                      ],
-                    ),
-                  ),
                 PopupMenuItem(
                   value: 'delete',
                   child: Row(
@@ -679,7 +604,50 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                     ),
                   ],
                   const SizedBox(height: 24),
-                  if (_report.canBeClaimed) ...[
+                  if (_report.status == 'pending') ...[
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 18),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: c.amberBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: c.amberText.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.pending_actions_rounded, color: c.amberText, size: 22),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Menunggu Verifikasi Admin',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                    color: c.amberText,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Laporan ini belum tampil di beranda publik. Admin akan memvalidasi keabsahan informasi laporan via dashboard website untuk menghindari laporan palsu.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: c.textSecondary,
+                                    height: 1.45,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (_report.canBeClaimed && !_isOwnerOrAdmin) ...[
                     ElevatedButton.icon(
                       onPressed: () {
                         Navigator.push(
@@ -700,18 +668,47 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                   ],
-                  if (_isOwnerOrAdmin && _report.status != 'completed') ...[
-                    OutlinedButton.icon(
-                      onPressed: _handleMarkCompleted,
-                      icon: Icon(Icons.check_circle_outline, color: c.successText),
-                      label: const Text('Tandai Barang Berhasil Kembali ke Pemilik'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: c.successText,
-                        side: BorderSide(color: c.successText),
-                        minimumSize: const Size.fromHeight(48),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  if (_report.isTemuan && _report.status != 'completed') ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: c.cardBgLight,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: c.cardBorder),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.assignment_outlined, color: c.tealText, size: 22),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Prosedur Berita Acara & Pengambilan',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                    color: c.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Pengambilan barang temuan dilakukan langsung di resepsionis / pos keamanan kampus. Mahasiswa/pemilik wajib memberikan keterangan untuk diinput ke formulir Berita Acara oleh Admin sebagai bukti legalitas serah terima.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: c.textSecondary,
+                                    height: 1.45,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

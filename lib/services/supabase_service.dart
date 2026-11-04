@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/constants/supabase_constants.dart';
@@ -277,7 +277,7 @@ class SupabaseService {
         campus:campuses(*),
         category:categories(*),
         user:profiles(*)
-      ''');
+      ''').inFilter('status', ['approved', 'completed']);
 
       if (jenis != null) {
         query = query.eq('jenis_laporan', jenis);
@@ -365,10 +365,14 @@ class SupabaseService {
         'lokasi': lokasi,
         'tanggal_kejadian': tanggalKejadian,
         'foto_barang': photoUrl,
-        'status': 'approved',
+        'status': 'pending',
       }).select().single();
 
-      return {'success': true, 'data': res, 'message': 'Laporan berhasil dibuat'};
+      return {
+        'success': true,
+        'data': res,
+        'message': 'Laporan berhasil dibuat dan sedang menunggu verifikasi admin sebelum dipublikasikan.',
+      };
     } catch (e) {
       debugPrint("Error createReport: $e");
       return {'success': false, 'message': 'Gagal membuat laporan: $e'};

@@ -92,10 +92,10 @@ class _HomeViewState extends State<HomeView> {
         if (_selectedCategoryId != null && rep.idCategory != _selectedCategoryId) {
           return false;
         }
-        if (_activeFilter == 'hilang' && !rep.isHilang) {
+        if (_activeFilter == 'hilang' && (!rep.isHilang || rep.status == 'completed')) {
           return false;
         }
-        if (_activeFilter == 'temuan' && !rep.isTemuan) {
+        if (_activeFilter == 'temuan' && (!rep.isTemuan || rep.status == 'completed')) {
           return false;
         }
         if (_activeFilter == 'completed' && rep.status != 'completed') {
@@ -126,8 +126,7 @@ class _HomeViewState extends State<HomeView> {
         }
         if (r.status == 'completed') {
           completed++;
-        }
-        if (r.isHilang) {
+        } else if (r.isHilang) {
           lost++;
         } else if (r.isTemuan) {
           found++;

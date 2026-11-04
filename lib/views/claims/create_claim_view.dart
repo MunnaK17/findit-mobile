@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
 import '../../models/report_model.dart';
 import '../../services/claim_service.dart';
@@ -48,10 +48,10 @@ class _CreateClaimViewState extends State<CreateClaimView> {
         builder: (_) => AlertDialog(
           backgroundColor: c.sheetBg,
           icon: Icon(Icons.check_circle_outline, color: c.successText, size: 50),
-          title: Text('Klaim Berhasil Dikirim', style: TextStyle(color: c.textPrimary)),
+          title: Text('Klaim Berhasil Dikirim', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w700)),
           content: Text(
-            'Pengajuan klaim Anda telah dicatat. Admin dan penemu barang akan memeriksa informasi yang Anda berikan.',
-            style: TextStyle(color: c.textSecondary),
+            'Pengajuan klaim Anda telah dicatat di sistem.\n\nUntuk pengambilan fisik barang, silakan datangi resepsionis / bagian administrasi kampus terkait dengan membawa kartu identitas (KTM/KTP) untuk pengesahan Berita Acara Serah Terima oleh Admin.',
+            style: TextStyle(color: c.textSecondary, height: 1.4),
           ),
           actions: [
             ElevatedButton(
@@ -167,7 +167,7 @@ class _CreateClaimViewState extends State<CreateClaimView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Tips Verifikasi Klaim',
+                            'Tips Verifikasi & Berita Acara',
                             style: TextStyle(
                               color: c.textPrimary,
                               fontWeight: FontWeight.w700,
@@ -176,7 +176,7 @@ class _CreateClaimViewState extends State<CreateClaimView> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Sebutkan ciri spesifik yang belum tertulis di deskripsi umum (seperti isi dalam dompet, wallpaper HP, stiker casing, atau nota pembelian) untuk membuktikan kepemilikan Anda.',
+                            'Sebutkan ciri khusus spesifik yang hanya diketahui oleh pemilik asli (misal: isi dompet, goresan, nomor seri, wallpaper). Data ini akan diverifikasi saat pembuatan Berita Acara di meja resepsionis.',
                             style: TextStyle(
                               color: c.textSecondary,
                               fontSize: 12,
