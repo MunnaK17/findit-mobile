@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
 import '../../models/chat_message_model.dart';
 import '../../services/chatbot_service.dart';
-import '../reports/create_report_view.dart';
 import '../claims/my_claims_view.dart';
+import '../reports/create_report_view.dart';
 
 class ChatbotView extends StatefulWidget {
   const ChatbotView({super.key});
@@ -30,7 +30,7 @@ class _ChatbotViewState extends State<ChatbotView> {
     super.initState();
     _messages.add(
       ChatMessageModel(
-        text: 'Halo! Saya FindBot, asisten virtual FindIT Kampus 👋\nAda yang bisa saya bantu terkait barang hilang atau temuan di kampus?',
+        text: 'Halo! Saya FindBot, asisten panduan FindIT Kampus.\nAda yang bisa saya bantu terkait barang hilang atau temuan di kampus?',
         isUser: false,
         timestamp: DateTime.now(),
         quickReplies: _initialSuggestions,
@@ -50,8 +50,8 @@ class _ChatbotViewState extends State<ChatbotView> {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
         );
       }
     });
@@ -122,13 +122,12 @@ class _ChatbotViewState extends State<ChatbotView> {
             Container(
               width: 38,
               height: 38,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
-                ),
+                color: c.tealBg,
+                border: Border.all(color: c.tealText.withValues(alpha: 0.4)),
               ),
-              child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 22),
+              child: Icon(Icons.support_agent_rounded, color: c.tealText, size: 20),
             ),
             const SizedBox(width: 12),
             Column(
@@ -136,24 +135,11 @@ class _ChatbotViewState extends State<ChatbotView> {
               children: [
                 Text(
                   'FindBot Assistant',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: c.textPrimary),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: c.textPrimary),
                 ),
-                Row(
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.accentEmerald,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      'Online • Siap Membantu',
-                      style: TextStyle(fontSize: 11, color: c.textMuted),
-                    ),
-                  ],
+                Text(
+                  'Asisten Panduan Lost & Found UBSI',
+                  style: TextStyle(fontSize: 11, color: c.textMuted),
                 ),
               ],
             ),
@@ -162,7 +148,6 @@ class _ChatbotViewState extends State<ChatbotView> {
       ),
       body: Column(
         children: [
-          // Chat message list
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -174,8 +159,6 @@ class _ChatbotViewState extends State<ChatbotView> {
               },
             ),
           ),
-
-          // Typing indicator
           if (_isTyping)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -185,7 +168,7 @@ class _ChatbotViewState extends State<ChatbotView> {
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
                       color: c.cardBg,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: c.cardBorder),
                     ),
                     child: Row(
@@ -198,7 +181,7 @@ class _ChatbotViewState extends State<ChatbotView> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'FindBot sedang mengetik...',
+                          'Menyiapkan jawaban panduan...',
                           style: TextStyle(fontSize: 12, color: c.textMuted),
                         ),
                       ],
@@ -207,11 +190,9 @@ class _ChatbotViewState extends State<ChatbotView> {
                 ],
               ),
             ),
-
-          // Quick replies
           if (_messages.isNotEmpty && _messages.last.quickReplies.isNotEmpty && !_isTyping)
             Container(
-              height: 42,
+              height: 46,
               margin: const EdgeInsets.only(bottom: 6),
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
@@ -232,8 +213,6 @@ class _ChatbotViewState extends State<ChatbotView> {
                 },
               ),
             ),
-
-          // Input field bar
           Container(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 16),
             decoration: BoxDecoration(
@@ -244,35 +223,41 @@ class _ChatbotViewState extends State<ChatbotView> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: c.inputFill,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: c.inputBorder),
-                      ),
-                      child: TextField(
-                        controller: _textController,
-                        style: TextStyle(color: c.inputText, fontSize: 14),
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: _sendMessage,
-                        decoration: InputDecoration(
-                          hintText: 'Tanyakan sesuatu seputar barang hilang...',
-                          hintStyle: TextStyle(color: c.inputHint, fontSize: 13),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
+                    child: Semantics(
+                      label: 'Ketik pertanyaan seputar barang hilang atau temuan',
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: c.inputFill,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: c.inputBorder),
+                        ),
+                        child: TextField(
+                          controller: _textController,
+                          style: TextStyle(color: c.inputText, fontSize: 14),
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: _sendMessage,
+                          decoration: InputDecoration(
+                            hintText: 'Tanyakan sesuatu seputar barang hilang...',
+                            hintStyle: TextStyle(color: c.inputHint, fontSize: 13),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                          ),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
                       color: AppColors.accentAmber,
                     ),
                     child: IconButton(
+                      tooltip: 'Kirim pesan',
                       icon: const Icon(Icons.send_rounded, color: AppColors.slate950, size: 20),
                       onPressed: () => _sendMessage(_textController.text),
                     ),
@@ -303,10 +288,10 @@ class _ChatbotViewState extends State<ChatbotView> {
                   width: 30,
                   height: 30,
                   decoration: BoxDecoration(
-                    color: AppColors.accentBlue.withValues(alpha: 0.15),
+                    color: c.tealBg,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.smart_toy_rounded, color: AppColors.accentBlue, size: 16),
+                  child: Icon(Icons.support_agent_rounded, color: c.tealText, size: 16),
                 ),
                 const SizedBox(width: 8),
               ],
@@ -314,21 +299,12 @@ class _ChatbotViewState extends State<ChatbotView> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: isUser
-                        ? AppColors.accentAmber
-                        : c.cardBg,
-                    borderRadius: BorderRadius.circular(18).copyWith(
-                      bottomRight: isUser ? const Radius.circular(4) : const Radius.circular(18),
-                      bottomLeft: !isUser ? const Radius.circular(4) : const Radius.circular(18),
+                    color: isUser ? AppColors.accentAmber : c.cardBg,
+                    borderRadius: BorderRadius.circular(16).copyWith(
+                      bottomRight: isUser ? const Radius.circular(4) : const Radius.circular(16),
+                      bottomLeft: !isUser ? const Radius.circular(4) : const Radius.circular(16),
                     ),
                     border: isUser ? null : Border.all(color: c.cardBorder),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: c.isDark ? 0.15 : 0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
                   ),
                   child: Text(
                     msg.text,
@@ -352,9 +328,10 @@ class _ChatbotViewState extends State<ChatbotView> {
                 icon: const Icon(Icons.open_in_new_rounded, size: 15),
                 label: Text(msg.action!.label),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accentBlue,
+                  backgroundColor: AppColors.bsiTeal,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  minimumSize: const Size(120, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),

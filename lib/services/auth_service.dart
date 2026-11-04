@@ -1,4 +1,4 @@
-import '../models/user_model.dart';
+﻿import '../models/user_model.dart';
 import 'supabase_service.dart';
 
 class AuthService {

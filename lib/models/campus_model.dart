@@ -1,4 +1,4 @@
-class CampusModel {
+﻿class CampusModel {
   final int id;
   final String namaKampus;
   final String kodeKampus;

@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
+import '../../core/constants/prodi_options.dart';
 import '../../models/campus_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/report_service.dart';
-import '../../core/constants/prodi_options.dart';
 import '../main_navigation_view.dart';
 import 'verify_email_view.dart';
 
@@ -17,7 +17,7 @@ class RegisterView extends StatefulWidget {
 class _RegisterViewState extends State<RegisterView> {
   final _formKey = GlobalKey<FormState>();
 
-  String _role = 'mahasiswa'; // 'mahasiswa' | 'staff'
+  String _role = 'mahasiswa';
   int? _selectedCampusId;
   List<CampusModel> _campuses = [];
   bool _isLoadingCampuses = true;
@@ -122,20 +122,20 @@ class _RegisterViewState extends State<RegisterView> {
     }
   }
 
-  Widget _buildProdiDropdown() {
+  Widget _buildProdiDropdown(FinditColors c) {
     final groups = ProdiOptions.forRole(_role);
     return DropdownButtonFormField<String>(
       key: ValueKey(_role),
       initialValue: _selectedProdi,
       isExpanded: true,
       menuMaxHeight: 360,
-      dropdownColor: AppColors.cardBg,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
+      dropdownColor: c.sheetBg,
+      style: TextStyle(color: c.textPrimary, fontSize: 14),
       decoration: InputDecoration(
         hintText: _role == 'mahasiswa' ? 'Pilih program studi' : 'Pilih unit kerja / prodi',
         prefixIcon: Icon(
           _role == 'mahasiswa' ? Icons.school_outlined : Icons.apartment_outlined,
-          color: AppColors.slate400,
+          color: c.inputHint,
         ),
       ),
       items: [
@@ -150,12 +150,15 @@ class _RegisterViewState extends State<RegisterView> {
       validator: (val) => val == null ? 'Pilih salah satu' : null,
     );
   }
+
   @override
   Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.appDark,
+      backgroundColor: c.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: AppColors.appDark,
+        backgroundColor: c.scaffoldBg,
         elevation: 0,
         title: const Text('Daftar Akun Sivitas UBSI'),
       ),
@@ -167,95 +170,107 @@ class _RegisterViewState extends State<RegisterView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'Buat Akun Baru',
                   style: TextStyle(
                     fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    color: c.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Daftarkan diri Anda sebagai Mahasiswa atau Staff/Dosen di seluruh cabang UBSI.',
-                  style: TextStyle(fontSize: 13, color: AppColors.slate400),
+                  style: TextStyle(fontSize: 13, color: c.textMuted),
                 ),
                 const SizedBox(height: 20),
-
-                // Role Toggle
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.cardBg,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.cardBorder),
+                    color: c.cardBg,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: c.cardBorder),
                   ),
                   padding: const EdgeInsets.all(4),
                   child: Row(
                     children: [
                       Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() {
-                            _role = 'mahasiswa';
-                            _selectedProdi = null;
-                          }),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: _role == 'mahasiswa' ? AppColors.accentAmber : Colors.transparent,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            alignment: Alignment.center,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.school_rounded,
-                                  size: 16,
-                                  color: _role == 'mahasiswa' ? AppColors.slate950 : AppColors.slate400,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Mahasiswa',
-                                  style: TextStyle(
-                                    color: _role == 'mahasiswa' ? AppColors.slate950 : AppColors.slate400,
-                                    fontWeight: FontWeight.bold,
+                        child: Semantics(
+                          button: true,
+                          selected: _role == 'mahasiswa',
+                          label: 'Daftar sebagai Mahasiswa',
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(10),
+                            onTap: () => setState(() {
+                              _role = 'mahasiswa';
+                              _selectedProdi = null;
+                            }),
+                            child: Container(
+                              constraints: const BoxConstraints(minHeight: 46),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: _role == 'mahasiswa' ? AppColors.accentAmber : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.school_rounded,
+                                    size: 16,
+                                    color: _role == 'mahasiswa' ? AppColors.slate950 : c.textMuted,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Mahasiswa',
+                                    style: TextStyle(
+                                      color: _role == 'mahasiswa' ? AppColors.slate950 : c.textMuted,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
                       Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() {
-                            _role = 'staff';
-                            _selectedProdi = null;
-                          }),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: _role == 'staff' ? AppColors.bsiTeal : Colors.transparent,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            alignment: Alignment.center,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.badge_rounded,
-                                  size: 16,
-                                  color: _role == 'staff' ? Colors.white : AppColors.slate400,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Staff / Dosen',
-                                  style: TextStyle(
-                                    color: _role == 'staff' ? Colors.white : AppColors.slate400,
-                                    fontWeight: FontWeight.bold,
+                        child: Semantics(
+                          button: true,
+                          selected: _role == 'staff',
+                          label: 'Daftar sebagai Staff atau Dosen',
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(10),
+                            onTap: () => setState(() {
+                              _role = 'staff';
+                              _selectedProdi = null;
+                            }),
+                            child: Container(
+                              constraints: const BoxConstraints(minHeight: 46),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: _role == 'staff' ? AppColors.bsiTeal : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.badge_rounded,
+                                    size: 16,
+                                    color: _role == 'staff' ? Colors.white : c.textMuted,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Staff / Dosen',
+                                    style: TextStyle(
+                                      color: _role == 'staff' ? Colors.white : c.textMuted,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -263,58 +278,63 @@ class _RegisterViewState extends State<RegisterView> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 22),
-
-                // Cabang Kampus Utama
-                const Text('Cabang Kampus Asal *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+                Text(
+                  'Cabang Kampus Asal *',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
+                ),
                 const SizedBox(height: 6),
                 _isLoadingCampuses
-                    ? const Center(child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator(strokeWidth: 2)))
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(8),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accentAmber),
+                        ),
+                      )
                     : DropdownButtonFormField<int>(
                         initialValue: _selectedCampusId,
-                        dropdownColor: AppColors.cardBg,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.location_city_rounded, color: AppColors.accentAmber),
+                        dropdownColor: c.sheetBg,
+                        style: TextStyle(color: c.textPrimary, fontSize: 14),
+                        decoration: InputDecoration(
+                          prefixIcon: Icon(Icons.location_city_rounded, color: c.amberText),
                         ),
-                        items: _campuses.map((c) {
+                        items: _campuses.map((camp) {
                           return DropdownMenuItem<int>(
-                            value: c.id,
-                            child: Text("${c.namaKampus} (${c.kota})"),
+                            value: camp.id,
+                            child: Text('${camp.namaKampus} (${camp.kota})'),
                           );
                         }).toList(),
                         onChanged: (val) => setState(() => _selectedCampusId = val),
                         validator: (val) => val == null ? 'Pilih cabang kampus asal' : null,
                       ),
-
                 const SizedBox(height: 16),
-
-                // Name
-                const Text('Nama Lengkap *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+                Text(
+                  'Nama Lengkap *',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
+                ),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _nameController,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: c.inputText),
                   decoration: InputDecoration(
                     hintText: _role == 'mahasiswa' ? 'Misal: Ahmad Fauzi' : 'Misal: Budi Santoso, M.Kom',
-                    prefixIcon: const Icon(Icons.person_outline, color: AppColors.slate400),
+                    prefixIcon: Icon(Icons.person_outline, color: c.inputHint),
                   ),
                   validator: (val) => val == null || val.trim().isEmpty ? 'Nama lengkap wajib diisi' : null,
                 ),
-
                 const SizedBox(height: 16),
-
-                // Email
-                const Text('Email BSI (@bsi.ac.id) *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+                Text(
+                  'Email BSI (@bsi.ac.id) *',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
+                ),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: c.inputText),
+                  decoration: InputDecoration(
                     hintText: 'nama@bsi.ac.id',
-                    prefixIcon: Icon(Icons.email_outlined, color: AppColors.slate400),
+                    prefixIcon: Icon(Icons.email_outlined, color: c.inputHint),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) return 'Email wajib diisi';
@@ -324,20 +344,20 @@ class _RegisterViewState extends State<RegisterView> {
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 16),
-
-                // NIM or NIP based on role
                 if (_role == 'mahasiswa') ...[
-                  const Text('NIM (Nomor Induk Mahasiswa) *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+                  Text(
+                    'NIM (Nomor Induk Mahasiswa) *',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
+                  ),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _nimController,
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: c.inputText),
+                    decoration: InputDecoration(
                       hintText: 'Misal: 19241001',
-                      prefixIcon: Icon(Icons.badge_outlined, color: AppColors.slate400),
+                      prefixIcon: Icon(Icons.badge_outlined, color: c.inputHint),
                     ),
                     validator: (val) {
                       if (_role == 'mahasiswa' && (val == null || val.trim().isEmpty)) {
@@ -347,19 +367,25 @@ class _RegisterViewState extends State<RegisterView> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  const Text('Program Studi *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+                  Text(
+                    'Program Studi *',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
+                  ),
                   const SizedBox(height: 6),
-                  _buildProdiDropdown(),
+                  _buildProdiDropdown(c),
                 ] else ...[
-                  const Text('NIP / NIDN *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+                  Text(
+                    'NIP / NIDN *',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
+                  ),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _nipController,
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: c.inputText),
+                    decoration: InputDecoration(
                       hintText: 'Misal: 0412345678',
-                      prefixIcon: Icon(Icons.badge_outlined, color: AppColors.slate400),
+                      prefixIcon: Icon(Icons.badge_outlined, color: c.inputHint),
                     ),
                     validator: (val) {
                       if (_role == 'staff' && (val == null || val.trim().isEmpty)) {
@@ -369,42 +395,46 @@ class _RegisterViewState extends State<RegisterView> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  const Text('Unit Kerja / Prodi *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+                  Text(
+                    'Unit Kerja / Prodi *',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
+                  ),
                   const SizedBox(height: 6),
-                  _buildProdiDropdown(),
+                  _buildProdiDropdown(c),
                 ],
-
                 const SizedBox(height: 16),
-
-                // Phone
-                const Text('Nomor WhatsApp / HP', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+                Text(
+                  'Nomor WhatsApp / HP',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
+                ),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: c.inputText),
+                  decoration: InputDecoration(
                     hintText: 'Misal: 081234567890',
-                    prefixIcon: Icon(Icons.phone_outlined, color: AppColors.slate400),
+                    prefixIcon: Icon(Icons.phone_outlined, color: c.inputHint),
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
-                // Password
-                const Text('Kata Sandi *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+                Text(
+                  'Kata Sandi *',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
+                ),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: c.inputText),
                   decoration: InputDecoration(
                     hintText: 'Minimal 8 karakter',
-                    prefixIcon: const Icon(Icons.lock_outline, color: AppColors.slate400),
+                    prefixIcon: Icon(Icons.lock_outline, color: c.inputHint),
                     suffixIcon: IconButton(
+                      tooltip: _obscurePassword ? 'Tampilkan kata sandi' : 'Sembunyikan kata sandi',
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                        color: AppColors.slate400,
+                        color: c.inputHint,
                       ),
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
@@ -414,28 +444,26 @@ class _RegisterViewState extends State<RegisterView> {
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 16),
-
-                // Password Confirmation
-                const Text('Konfirmasi Kata Sandi *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+                Text(
+                  'Konfirmasi Kata Sandi *',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
+                ),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _passwordConfirmationController,
                   obscureText: _obscurePassword,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: c.inputText),
+                  decoration: InputDecoration(
                     hintText: 'Ulangi kata sandi',
-                    prefixIcon: Icon(Icons.lock_reset_outlined, color: AppColors.slate400),
+                    prefixIcon: Icon(Icons.lock_reset_outlined, color: c.inputHint),
                   ),
                   validator: (val) {
                     if (val != _passwordController.text) return 'Konfirmasi kata sandi tidak cocok';
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 28),
-
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleRegister,
                   style: ElevatedButton.styleFrom(

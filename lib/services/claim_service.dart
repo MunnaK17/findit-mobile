@@ -1,4 +1,4 @@
-import '../models/claim_model.dart';
+﻿import '../models/claim_model.dart';
 import 'supabase_service.dart';
 
 class ClaimService {

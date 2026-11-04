@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
 import '../../models/report_model.dart';
 import '../../services/claim_service.dart';
@@ -47,8 +47,8 @@ class _CreateClaimViewState extends State<CreateClaimView> {
         barrierDismissible: false,
         builder: (_) => AlertDialog(
           backgroundColor: c.sheetBg,
-          icon: const Icon(Icons.check_circle_outline, color: AppColors.accentEmerald, size: 50),
-          title: Text('Klaim Berhasil Dikirim!', style: TextStyle(color: c.textPrimary)),
+          icon: Icon(Icons.check_circle_outline, color: c.successText, size: 50),
+          title: Text('Klaim Berhasil Dikirim', style: TextStyle(color: c.textPrimary)),
           content: Text(
             'Pengajuan klaim Anda telah dicatat. Admin dan penemu barang akan memeriksa informasi yang Anda berikan.',
             style: TextStyle(color: c.textSecondary),
@@ -56,8 +56,8 @@ class _CreateClaimViewState extends State<CreateClaimView> {
           actions: [
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(context); // close dialog
-                Navigator.pop(context); // close claim view
+                Navigator.pop(context);
+                Navigator.pop(context);
               },
               child: const Text('Selesai'),
             ),
@@ -92,12 +92,11 @@ class _CreateClaimViewState extends State<CreateClaimView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Summary card of the item
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: c.cardBg,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: c.cardBorder),
                 ),
                 child: Row(
@@ -111,7 +110,10 @@ class _CreateClaimViewState extends State<CreateClaimView> {
                         child: widget.report.fullFotoUrl != null
                             ? Image.network(
                                 widget.report.fullFotoUrl!,
+                                width: 64,
+                                height: 64,
                                 fit: BoxFit.cover,
+                                semanticLabel: 'Foto ${widget.report.namaBarang}',
                                 errorBuilder: (_, __, ___) => Icon(
                                   Icons.inventory_2_outlined,
                                   color: c.textMuted,
@@ -132,7 +134,7 @@ class _CreateClaimViewState extends State<CreateClaimView> {
                             widget.report.namaBarang,
                             style: TextStyle(
                               fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w700,
                               color: c.textPrimary,
                             ),
                           ),
@@ -147,10 +149,7 @@ class _CreateClaimViewState extends State<CreateClaimView> {
                   ],
                 ),
               ),
-
-              const SizedBox(height: 24),
-
-              // Instructions / tips
+              const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -161,7 +160,7 @@ class _CreateClaimViewState extends State<CreateClaimView> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.info_outline, color: AppColors.accentAmber, size: 20),
+                    Icon(Icons.info_outline, color: c.amberText, size: 20),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -171,7 +170,7 @@ class _CreateClaimViewState extends State<CreateClaimView> {
                             'Tips Verifikasi Klaim',
                             style: TextStyle(
                               color: c.textPrimary,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w700,
                               fontSize: 13,
                             ),
                           ),
@@ -190,10 +189,7 @@ class _CreateClaimViewState extends State<CreateClaimView> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 20),
-
-              // Bukti kepemilikan / Pesan klaim
               TextFormField(
                 controller: _pesanController,
                 maxLines: 6,
@@ -205,11 +201,11 @@ class _CreateClaimViewState extends State<CreateClaimView> {
                   filled: true,
                   fillColor: c.inputFill,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: c.inputBorder),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: c.inputBorder),
                   ),
                 ),
@@ -223,18 +219,15 @@ class _CreateClaimViewState extends State<CreateClaimView> {
                   return null;
                 },
               ),
-
-              const SizedBox(height: 30),
-
-              // Submit Button
+              const SizedBox(height: 28),
               ElevatedButton(
                 onPressed: _isLoading ? null : _submitClaim,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accentAmber,
                   foregroundColor: AppColors.slate950,
-                  minimumSize: const Size.fromHeight(52),
+                  minimumSize: const Size.fromHeight(50),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: _isLoading
@@ -245,7 +238,7 @@ class _CreateClaimViewState extends State<CreateClaimView> {
                       )
                     : const Text(
                         'Kirim Pengajuan Klaim',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                       ),
               ),
             ],

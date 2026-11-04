@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/constants/colors.dart';
+import '../../main.dart';
 import '../../services/auth_service.dart';
 import '../main_navigation_view.dart';
 import 'register_view.dart';
@@ -28,26 +29,30 @@ class _LoginViewState extends State<LoginView> {
   }
 
   void _showServerConfigDialog() {
+    final c = FinditColors.of(context);
     final ipController = TextEditingController(
       text: ApiConstants.apiHost.replaceAll('http://', '').replaceAll('https://', ''),
     );
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardBg,
-        title: const Text('Pengaturan Host Server API', style: TextStyle(color: Colors.white, fontSize: 16)),
+        backgroundColor: c.sheetBg,
+        title: Text(
+          'Pengaturan Host Server API',
+          style: TextStyle(color: c.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               '• USB Cable: 127.0.0.1:8000 (pastikan adb reverse aktif)\n• WiFi Laptop: 192.168.1.9:8000',
-              style: TextStyle(fontSize: 12, color: AppColors.slate400, height: 1.4),
+              style: TextStyle(fontSize: 12, color: c.textMuted, height: 1.4),
             ),
             const SizedBox(height: 14),
             TextField(
               controller: ipController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: c.inputText),
               decoration: const InputDecoration(
                 labelText: 'Host API',
                 hintText: '127.0.0.1:8000',
@@ -58,7 +63,7 @@ class _LoginViewState extends State<LoginView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Batal', style: TextStyle(color: AppColors.slate400)),
+            child: Text('Batal', style: TextStyle(color: c.textMuted)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -121,14 +126,26 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+    final themeProvider = context.themeProvider;
+
     return Scaffold(
-      backgroundColor: AppColors.appDark,
+      backgroundColor: c.scaffoldBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.dns_outlined, color: AppColors.slate400, size: 20),
+            icon: Icon(
+              c.isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+              color: c.amberText,
+              size: 20,
+            ),
+            tooltip: c.isDark ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap',
+            onPressed: () => themeProvider.toggleTheme(),
+          ),
+          IconButton(
+            icon: Icon(Icons.dns_outlined, color: c.textMuted, size: 20),
             tooltip: 'Pengaturan Server API',
             onPressed: _showServerConfigDialog,
           ),
@@ -137,70 +154,57 @@ class _LoginViewState extends State<LoginView> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo & Icon
                   Center(
                     child: Container(
-                      width: 86,
-                      height: 86,
+                      width: 72,
+                      height: 72,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.accentAmberLight, AppColors.accentAmber],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.accentAmber.withValues(alpha: 0.35),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
+                        color: AppColors.accentAmber,
+                        borderRadius: BorderRadius.circular(18),
                       ),
                       child: const Icon(
                         Icons.search_rounded,
-                        size: 46,
+                        size: 38,
                         color: AppColors.slate950,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 22),
-
+                  const SizedBox(height: 20),
                   Center(
                     child: RichText(
-                      text: const TextSpan(
+                      text: TextSpan(
                         children: [
                           TextSpan(
-                            text: "Find.",
+                            text: 'Find.',
                             style: TextStyle(
                               fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              color: c.textPrimary,
                               letterSpacing: -0.5,
                             ),
                           ),
                           TextSpan(
-                            text: "It",
+                            text: 'It',
                             style: TextStyle(
                               fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.accentAmberLight,
+                              fontWeight: FontWeight.w800,
+                              color: c.amberText,
                               letterSpacing: -0.5,
                             ),
                           ),
                           TextSpan(
-                            text: " Kampus",
+                            text: ' Kampus',
                             style: TextStyle(
                               fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              color: c.textPrimary,
                               letterSpacing: -0.5,
                             ),
                           ),
@@ -209,29 +213,29 @@ class _LoginViewState extends State<LoginView> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Center(
+                  Center(
                     child: Text(
-                      'Platform Lapor Barang Hilang & Temuan',
+                      'Platform Lapor Barang Hilang & Temuan UBSI',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.slate400,
+                        color: c.textMuted,
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 36),
-
-                  // Email
-                  const Text('Email Mahasiswa / Akun', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Email Mahasiswa / Akun',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
+                  ),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: c.inputText),
+                    decoration: InputDecoration(
                       hintText: 'nama@bsi.ac.id',
-                      prefixIcon: Icon(Icons.email_outlined, color: AppColors.slate400),
+                      prefixIcon: Icon(Icons.email_outlined, color: c.inputHint),
                     ),
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) return 'Email wajib diisi';
@@ -239,23 +243,24 @@ class _LoginViewState extends State<LoginView> {
                       return null;
                     },
                   ),
-
                   const SizedBox(height: 18),
-
-                  // Password
-                  const Text('Kata Sandi', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+                  Text(
+                    'Kata Sandi',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
+                  ),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: c.inputText),
                     decoration: InputDecoration(
                       hintText: '••••••••',
-                      prefixIcon: const Icon(Icons.lock_outline, color: AppColors.slate400),
+                      prefixIcon: Icon(Icons.lock_outline, color: c.inputHint),
                       suffixIcon: IconButton(
+                        tooltip: _obscurePassword ? 'Tampilkan kata sandi' : 'Sembunyikan kata sandi',
                         icon: Icon(
                           _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                          color: AppColors.slate400,
+                          color: c.inputHint,
                         ),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
@@ -265,10 +270,7 @@ class _LoginViewState extends State<LoginView> {
                       return null;
                     },
                   ),
-
                   const SizedBox(height: 28),
-
-                  // Login Button
                   ElevatedButton(
                     onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
@@ -284,58 +286,53 @@ class _LoginViewState extends State<LoginView> {
                           )
                         : const Text('Masuk ke Akun'),
                   ),
-
-                  const SizedBox(height: 18),
-
-                  // Register link
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Belum punya akun? ', style: TextStyle(fontSize: 13, color: AppColors.slate400)),
-                      GestureDetector(
-                        onTap: () {
+                      Text('Belum punya akun?', style: TextStyle(fontSize: 13, color: c.textMuted)),
+                      TextButton(
+                        onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (_) => const RegisterView()),
                           );
                         },
+                        style: TextButton.styleFrom(
+                          foregroundColor: c.amberText,
+                          minimumSize: const Size(48, 44),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        ),
                         child: const Text(
                           'Daftar Sekarang',
                           style: TextStyle(
-                            color: AppColors.accentAmber,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                             fontSize: 13,
                           ),
                         ),
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 22),
-
-                  // Divider
-                  const Row(
+                  const SizedBox(height: 14),
+                  Row(
                     children: [
-                      Expanded(child: Divider(color: AppColors.cardBorder)),
+                      Expanded(child: Divider(color: c.cardBorder)),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 14),
-                        child: Text('atau', style: TextStyle(color: AppColors.slate400, fontSize: 12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: Text('atau', style: TextStyle(color: c.textMuted, fontSize: 12)),
                       ),
-                      Expanded(child: Divider(color: AppColors.cardBorder)),
+                      Expanded(child: Divider(color: c.cardBorder)),
                     ],
                   ),
-
                   const SizedBox(height: 18),
-
-                  // Continue as guest
                   OutlinedButton.icon(
                     onPressed: _continueAsGuest,
-                    icon: const Icon(Icons.person_outline, color: AppColors.slate300),
-                    label: const Text('Masuk Sebagai Tamu', style: TextStyle(color: Colors.white)),
+                    icon: Icon(Icons.person_outline, color: c.textSecondary),
+                    label: Text('Masuk Sebagai Tamu', style: TextStyle(color: c.textPrimary)),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.cardBorder),
+                      side: BorderSide(color: c.cardBorder),
                       minimumSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ],

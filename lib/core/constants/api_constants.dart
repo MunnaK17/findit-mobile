@@ -1,4 +1,4 @@
-class ApiConstants {
+﻿class ApiConstants {
   static String? _customHost;
 
   static String get apiHost {
@@ -22,7 +22,6 @@ class ApiConstants {
   static String get baseUrl => "$apiHost/api";
   static String get baseStorageUrl => "$apiHost/storage";
 
-  // Auth Endpoints
   static String get login => "$baseUrl/login";
   static String get register => "$baseUrl/register";
   static String get verifyEmail => "$baseUrl/verify-email";
@@ -30,17 +29,14 @@ class ApiConstants {
   static String get logout => "$baseUrl/logout";
   static String get user => "$baseUrl/user";
 
-  // Reports & Masters
   static String get reports => "$baseUrl/reports";
   static String get myReports => "$baseUrl/my-reports";
   static String get categories => "$baseUrl/categories";
   static String get campuses => "$baseUrl/campuses";
 
-  // Claims
   static String get claims => "$baseUrl/claims";
   static String get myClaims => "$baseUrl/my-claims";
 
-  // AI Chatbot
   static String get chatbot => "$baseUrl/chatbot";
 }
 

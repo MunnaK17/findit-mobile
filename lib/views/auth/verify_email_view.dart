@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
 import '../../services/auth_service.dart';
 import '../main_navigation_view.dart';
@@ -69,10 +69,12 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
 
   @override
   Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.appDark,
+      backgroundColor: c.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: AppColors.appDark,
+        backgroundColor: c.scaffoldBg,
         elevation: 0,
         title: const Text('Verifikasi Email'),
       ),
@@ -85,42 +87,54 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
               const SizedBox(height: 16),
               Center(
                 child: Container(
-                  width: 84,
-                  height: 84,
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
-                    color: AppColors.cardBgLight,
+                    color: c.amberBg,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.accentAmber, width: 2),
+                    border: Border.all(color: c.amberText, width: 1.5),
                   ),
-                  child: const Icon(Icons.mark_email_unread_outlined,
-                      size: 40, color: AppColors.accentAmber),
+                  child: Icon(
+                    Icons.mark_email_unread_outlined,
+                    size: 38,
+                    color: c.amberText,
+                  ),
                 ),
               ),
               const SizedBox(height: 22),
-              const Text(
+              Text(
                 'Aktifkan Akun Anda',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: c.textPrimary),
               ),
               const SizedBox(height: 8),
               Text(
                 'Kami telah mengirim kode 8 digit ke\n${widget.email}\nMasukkan kode tersebut untuk mengaktifkan akun.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: AppColors.slate400, height: 1.5),
+                style: TextStyle(fontSize: 13, color: c.textMuted, height: 1.5),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
+              Text(
+                'Kode Verifikasi OTP',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: c.textSecondary),
+              ),
+              const SizedBox(height: 8),
               TextField(
                 controller: _codeController,
                 keyboardType: TextInputType.number,
                 maxLength: 8,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: c.inputText,
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 6,
                 ),
-                decoration: const InputDecoration(counterText: '', hintText: '--------'),
+                decoration: const InputDecoration(
+                  counterText: '',
+                  hintText: '--------',
+                ),
                 onSubmitted: (_) => _verify(),
               ),
               const SizedBox(height: 20),
@@ -138,18 +152,20 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
               const SizedBox(height: 12),
               TextButton(
                 onPressed: _cooldown > 0 ? null : _resend,
+                style: TextButton.styleFrom(minimumSize: const Size(48, 44)),
                 child: Text(
                   _cooldown > 0 ? 'Kirim ulang kode ($_cooldown dtk)' : 'Kirim ulang kode',
                   style: TextStyle(
-                    color: _cooldown > 0 ? AppColors.slate400 : AppColors.accentAmber,
+                    fontWeight: FontWeight.w700,
+                    color: _cooldown > 0 ? c.textMuted : c.amberText,
                   ),
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Kode berlaku 15 menit. Periksa juga folder spam.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                style: TextStyle(fontSize: 12, color: c.textMuted),
               ),
             ],
           ),

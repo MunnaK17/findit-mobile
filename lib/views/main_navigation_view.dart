@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../core/constants/colors.dart';
 import 'home/home_view.dart';
 import 'reports/create_report_view.dart';
@@ -18,7 +18,6 @@ class MainNavigationView extends StatefulWidget {
 class _MainNavigationViewState extends State<MainNavigationView> {
   late int _currentIndex;
 
-  // 0: Home, 1: Search, 2: MyClaims, 3: Profile
   List<Widget> get _pages => const [
     HomeView(),
     SearchView(),
@@ -53,121 +52,141 @@ class _MainNavigationViewState extends State<MainNavigationView> {
         index: _currentIndex,
         children: _pages,
       ),
-      bottomNavigationBar: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.topCenter,
-        children: [
-          // Background Bar
-          Container(
-            height: 64,
-            decoration: BoxDecoration(
-              color: c.navBarBg.withValues(alpha: 0.98),
-              border: Border(
-                top: BorderSide(color: c.navBarBorder, width: 1),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
+          children: [
+            Container(
+              height: 68,
+              decoration: BoxDecoration(
+                color: c.navBarBg,
+                border: Border(
+                  top: BorderSide(color: c.navBarBorder, width: 1),
+                ),
               ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                // 1. Home
-                _buildNavItem(
-                  icon: Icons.home_rounded,
-                  unselectedIcon: Icons.home_outlined,
-                  isSelected: _currentIndex == 0,
-                  onTap: () => _onItemTapped(0),
-                ),
-
-                // 2. Search / Chat
-                _buildNavItem(
-                  icon: Icons.search_rounded,
-                  unselectedIcon: Icons.search_rounded,
-                  isSelected: _currentIndex == 1,
-                  onTap: () => _onItemTapped(1),
-                ),
-
-                // Spacer for Center Floating Action Button
-                const SizedBox(width: 56),
-
-                // 4. Claims / History
-                _buildNavItem(
-                  icon: Icons.receipt_long_rounded,
-                  unselectedIcon: Icons.receipt_long_outlined,
-                  isSelected: _currentIndex == 2,
-                  onTap: () => _onItemTapped(2),
-                ),
-
-                // 5. Profile
-                _buildNavItem(
-                  icon: Icons.person_rounded,
-                  unselectedIcon: Icons.person_outline_rounded,
-                  isSelected: _currentIndex == 3,
-                  onTap: () => _onItemTapped(3),
-                ),
-              ],
-            ),
-          ),
-
-          // Centered Floating Add (+) Action Button from Stitch Design
-          Positioned(
-            top: -24,
-            child: GestureDetector(
-              onTap: _openCreateReport,
-              child: Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.accentAmber,
-                  border: Border.all(
-                    color: c.navBarFabBorder,
-                    width: 4,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(
+                    label: 'Beranda',
+                    icon: Icons.home_rounded,
+                    unselectedIcon: Icons.home_outlined,
+                    isSelected: _currentIndex == 0,
+                    onTap: () => _onItemTapped(0),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.accentAmber.withValues(alpha: 0.45),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
+                  _buildNavItem(
+                    label: 'Cari',
+                    icon: Icons.search_rounded,
+                    unselectedIcon: Icons.search_rounded,
+                    isSelected: _currentIndex == 1,
+                    onTap: () => _onItemTapped(1),
+                  ),
+                  const SizedBox(width: 60),
+                  _buildNavItem(
+                    label: 'Aktivitas',
+                    icon: Icons.receipt_long_rounded,
+                    unselectedIcon: Icons.receipt_long_outlined,
+                    isSelected: _currentIndex == 2,
+                    onTap: () => _onItemTapped(2),
+                  ),
+                  _buildNavItem(
+                    label: 'Profil',
+                    icon: Icons.person_rounded,
+                    unselectedIcon: Icons.person_outline_rounded,
+                    isSelected: _currentIndex == 3,
+                    onTap: () => _onItemTapped(3),
+                  ),
+                ],
+              ),
+            ),
+
+            // Tombol utama pembuatan laporan ditempatkan menonjol di tengah agar dapat dijangkau satu ibu jari.
+            Positioned(
+              top: -20,
+              child: Semantics(
+                button: true,
+                label: 'Buat Laporan Barang Baru',
+                child: Tooltip(
+                  message: 'Buat Laporan Baru',
+                  child: Material(
+                    color: AppColors.accentAmber,
+                    shape: CircleBorder(
+                      side: BorderSide(
+                        color: c.navBarFabBorder,
+                        width: 4,
+                      ),
                     ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.add_rounded,
-                  size: 28,
-                  color: AppColors.slate950,
+                    elevation: 4,
+                    child: InkWell(
+                      onTap: _openCreateReport,
+                      customBorder: const CircleBorder(),
+                      child: const SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: Icon(
+                          Icons.add_rounded,
+                          size: 28,
+                          color: AppColors.slate950,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildNavItem({
+    required String label,
     required IconData icon,
     required IconData unselectedIcon,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
     final c = FinditColors.of(context);
+    final activeColor = c.amberText;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Icon(
-          isSelected ? icon : unselectedIcon,
-          size: 24,
-          color: isSelected ? (c.isDark ? Colors.white : AppColors.accentAmber) : c.textMuted,
-          shadows: isSelected
-              ? [
-                  Shadow(
-                    color: AppColors.accentAmber.withValues(alpha: 0.8),
-                    blurRadius: 10,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: label,
+      child: Tooltip(
+        message: label,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 64, minHeight: 52),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isSelected ? icon : unselectedIcon,
+                    size: 22,
+                    color: isSelected ? activeColor : c.textMuted,
                   ),
-                ]
-              : null,
+                  const SizedBox(height: 3),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      color: isSelected ? activeColor : c.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

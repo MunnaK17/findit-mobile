@@ -1,4 +1,4 @@
-/// Daftar program studi Universitas Bina Sarana Informatika (UBSI)
+﻿/// Daftar program studi Universitas Bina Sarana Informatika (UBSI)
 /// dan unit kerja untuk staff, dipakai sebagai pilihan (tanpa input manual).
 class ProdiOptions {
   static const Map<String, List<String>> mahasiswa = {

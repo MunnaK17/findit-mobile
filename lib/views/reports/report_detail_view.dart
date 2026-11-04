@@ -45,9 +45,9 @@ class _ReportDetailViewState extends State<ReportDetailView> {
     }
 
     final message = Uri.encodeComponent(
-      "Halo, saya melihat laporan di aplikasi FindIT terkait barang: *$itemName*. Apakah barang tersebut masih ada / sudah bisa dikoordinasikan?",
+      'Halo, saya melihat laporan di aplikasi FindIT terkait barang: *$itemName*. Apakah barang tersebut masih ada / sudah bisa dikoordinasikan?',
     );
-    final url = Uri.parse("https://wa.me/$cleanPhone?text=$message");
+    final url = Uri.parse('https://wa.me/$cleanPhone?text=$message');
 
     try {
       if (await canLaunchUrl(url)) {
@@ -56,7 +56,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Tidak dapat membuka WhatsApp"),
+            content: Text('Tidak dapat membuka WhatsApp'),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -65,7 +65,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Gagal membuka WhatsApp: $e"),
+          content: Text('Gagal membuka WhatsApp: $e'),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -94,14 +94,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
               decoration: BoxDecoration(
                 color: cs.sheetBg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 20,
-                    offset: Offset(0, -4),
-                  ),
-                ],
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: Form(
                 key: formKey,
@@ -124,7 +117,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                       'Edit Laporan Barang',
                       style: TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                         color: cs.textPrimary,
                       ),
                     ),
@@ -136,7 +129,6 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                         labelText: 'Nama Barang',
                         filled: true,
                         fillColor: cs.inputFill,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cs.inputBorder)),
                       ),
                       validator: (v) => v == null || v.trim().isEmpty ? 'Nama barang wajib diisi' : null,
                     ),
@@ -148,7 +140,6 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                         labelText: 'Lokasi',
                         filled: true,
                         fillColor: cs.inputFill,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cs.inputBorder)),
                       ),
                       validator: (v) => v == null || v.trim().isEmpty ? 'Lokasi wajib diisi' : null,
                     ),
@@ -161,7 +152,6 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                         labelText: 'Deskripsi / Ciri Khusus',
                         filled: true,
                         fillColor: cs.inputFill,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cs.inputBorder)),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -173,7 +163,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               side: BorderSide(color: cs.cardBorder),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                             child: Text('Batal', style: TextStyle(color: cs.textSecondary)),
                           ),
@@ -235,10 +225,10 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                               backgroundColor: AppColors.accentAmber,
                               foregroundColor: AppColors.slate950,
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               elevation: 0,
                             ),
-                            child: const Text('Simpan Perubahan', style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text('Simpan Perubahan', style: TextStyle(fontWeight: FontWeight.w700)),
                           ),
                         ),
                       ],
@@ -271,8 +261,11 @@ class _ReportDetailViewState extends State<ReportDetailView> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
-            child: const Text('Tandai Selesai', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Tandai Selesai'),
           ),
         ],
       ),
@@ -305,7 +298,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
         });
         messenger.showSnackBar(
           const SnackBar(
-            content: Text('Status berhasil diubah: Selesai / Dikembalikan!'),
+            content: Text('Status berhasil diubah menjadi Selesai / Dikembalikan'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -331,8 +324,11 @@ class _ReportDetailViewState extends State<ReportDetailView> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
-            child: const Text('Hapus', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Hapus'),
           ),
         ],
       ),
@@ -360,7 +356,10 @@ class _ReportDetailViewState extends State<ReportDetailView> {
   Widget build(BuildContext context) {
     final c = FinditColors.of(context);
     final isHilang = _report.isHilang;
-    final badgeColor = isHilang ? AppColors.accentAmber : AppColors.accentBlue;
+    final badgeText = isHilang ? c.amberText : c.tealText;
+    final badgeBg = isHilang ? c.amberBg : c.tealBg;
+    final statusText = c.statusTextColor(_report.status);
+    final statusBg = c.statusBgColor(_report.status);
     final contactPhone = _report.user?.phone;
 
     return Scaffold(
@@ -372,6 +371,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
         actions: [
           if (_isOwnerOrAdmin)
             PopupMenuButton<String>(
+              tooltip: 'Opsi laporan',
               icon: Icon(Icons.more_vert_rounded, color: c.textPrimary),
               color: c.sheetBg,
               onSelected: (val) {
@@ -393,21 +393,21 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                 if (_report.status != 'completed')
                   PopupMenuItem(
                     value: 'complete',
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.check_circle_outline, size: 18, color: AppColors.success),
-                        SizedBox(width: 8),
-                        Text('Tandai Selesai', style: TextStyle(color: AppColors.success)),
+                        Icon(Icons.check_circle_outline, size: 18, color: c.successText),
+                        const SizedBox(width: 8),
+                        Text('Tandai Selesai', style: TextStyle(color: c.successText)),
                       ],
                     ),
                   ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_outline, size: 18, color: AppColors.danger),
-                      SizedBox(width: 8),
-                      Text('Hapus Laporan', style: TextStyle(color: AppColors.danger)),
+                      Icon(Icons.delete_outline, size: 18, color: c.dangerText),
+                      const SizedBox(width: 8),
+                      Text('Hapus Laporan', style: TextStyle(color: c.dangerText)),
                     ],
                   ),
                 ),
@@ -419,13 +419,13 @@ class _ReportDetailViewState extends State<ReportDetailView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Image section
             if (_report.fullFotoUrl != null)
               Image.network(
                 _report.fullFotoUrl!,
                 height: 260,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                semanticLabel: 'Foto barang ${_report.namaBarang}',
                 errorBuilder: (_, __, ___) => Container(
                   height: 200,
                   color: c.cardBgLight,
@@ -441,32 +441,30 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                 child: Center(
                   child: Icon(
                     isHilang ? Icons.warning_amber_rounded : Icons.search_rounded,
-                    size: 80,
-                    color: badgeColor.withValues(alpha: 0.5),
+                    size: 72,
+                    color: badgeText.withValues(alpha: 0.5),
                   ),
                 ),
               ),
-
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Badges
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: badgeColor.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: badgeColor.withValues(alpha: 0.4)),
+                          color: badgeBg,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: badgeText.withValues(alpha: 0.4)),
                         ),
                         child: Text(
                           isHilang ? 'Barang Hilang' : 'Barang Temuan',
                           style: TextStyle(
-                            color: badgeColor,
-                            fontWeight: FontWeight.bold,
+                            color: badgeText,
+                            fontWeight: FontWeight.w700,
                             fontSize: 12,
                           ),
                         ),
@@ -475,14 +473,14 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: _getStatusColor(_report.status).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
+                          color: statusBg,
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           _getStatusLabel(_report.status),
                           style: TextStyle(
-                            color: _getStatusColor(_report.status),
-                            fontWeight: FontWeight.bold,
+                            color: statusText,
+                            fontWeight: FontWeight.w700,
                             fontSize: 12,
                           ),
                         ),
@@ -490,24 +488,20 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                     ],
                   ),
                   const SizedBox(height: 18),
-
-                  // Title
                   Text(
                     _report.namaBarang,
                     style: TextStyle(
                       fontSize: 22,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w800,
                       color: c.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 14),
-
-                  // Info list container
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: c.cardBg,
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: c.cardBorder),
                     ),
                     child: Column(
@@ -517,7 +511,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                             c: c,
                             icon: Icons.domain_rounded,
                             label: 'Cabang Kampus',
-                            value: "${_report.campus!.namaKampus} (${_report.campus!.kota})",
+                            value: '${_report.campus!.namaKampus} (${_report.campus!.kota})',
                           ),
                           Divider(height: 16, color: c.cardBorder),
                         ],
@@ -544,15 +538,12 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 24),
-
-                  // Deskripsi
                   Text(
                     'Deskripsi / Ciri Khusus',
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                       color: c.textPrimary,
                     ),
                   ),
@@ -576,15 +567,13 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                       ),
                     ),
                   ),
-
-                  // Pelapor Card & Direct WhatsApp Button
                   if (_report.user != null) ...[
                     const SizedBox(height: 24),
                     Text(
                       'Informasi Pelapor',
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                         color: c.textPrimary,
                       ),
                     ),
@@ -601,8 +590,8 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                           Row(
                             children: [
                               CircleAvatar(
-                                backgroundColor: AppColors.accentAmber.withValues(alpha: 0.15),
-                                child: const Icon(Icons.person, color: AppColors.accentAmber),
+                                backgroundColor: c.mintBg,
+                                child: Icon(Icons.person, color: c.mintText),
                               ),
                               const SizedBox(width: 14),
                               Expanded(
@@ -611,29 +600,30 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                                   children: [
                                     Row(
                                       children: [
-                                        Text(
-                                          _report.user!.name,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                            color: c.textPrimary,
+                                        Flexible(
+                                          child: Text(
+                                            _report.user!.name,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 14,
+                                              color: c.textPrimary,
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(width: 8),
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                           decoration: BoxDecoration(
-                                            color: _report.user!.isStaff
-                                                ? AppColors.bsiTeal.withValues(alpha: 0.15)
-                                                : AppColors.accentAmber.withValues(alpha: 0.15),
+                                            color: _report.user!.isStaff ? c.tealBg : c.amberBg,
                                             borderRadius: BorderRadius.circular(6),
                                           ),
                                           child: Text(
                                             _report.user!.roleLabel,
                                             style: TextStyle(
                                               fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              color: _report.user!.isStaff ? AppColors.bsiTeal : AppColors.accentAmber,
+                                              fontWeight: FontWeight.w700,
+                                              color: _report.user!.isStaff ? c.tealText : c.amberText,
                                             ),
                                           ),
                                         ),
@@ -642,7 +632,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                                     if (_report.user!.nip != null && _report.user!.nip!.isNotEmpty) ...[
                                       const SizedBox(height: 2),
                                       Text(
-                                        "NIP: ${_report.user!.nip}",
+                                        'NIP: ${_report.user!.nip}',
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: c.textMuted,
@@ -651,7 +641,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                                     ] else if (_report.user!.nim != null && _report.user!.nim!.isNotEmpty) ...[
                                       const SizedBox(height: 2),
                                       Text(
-                                        "NIM: ${_report.user!.nim}",
+                                        'NIM: ${_report.user!.nim}',
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: c.textMuted,
@@ -663,8 +653,6 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                               ),
                             ],
                           ),
-
-                          // Direct WhatsApp Button if phone available
                           if (contactPhone != null && contactPhone.isNotEmpty) ...[
                             const SizedBox(height: 12),
                             Divider(height: 1, color: c.cardBorder),
@@ -673,14 +661,15 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                               width: double.infinity,
                               child: ElevatedButton.icon(
                                 onPressed: () => _launchWhatsApp(contactPhone, _report.namaBarang),
-                                icon: const Icon(Icons.chat_rounded, color: Colors.white, size: 18),
+                                icon: const Icon(Icons.chat_rounded, color: AppColors.slate950, size: 18),
                                 label: const Text('Hubungi via WhatsApp (Pelapor)'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF25D366),
-                                  foregroundColor: Colors.white,
+                                  backgroundColor: AppColors.statusReturned,
+                                  foregroundColor: AppColors.slate950,
+                                  minimumSize: const Size.fromHeight(48),
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 11),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
                                 ),
                               ),
                             ),
@@ -689,10 +678,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                       ),
                     ),
                   ],
-
                   const SizedBox(height: 24),
-
-                  // Claim button if eligible
                   if (_report.canBeClaimed) ...[
                     ElevatedButton.icon(
                       onPressed: () {
@@ -710,28 +696,25 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                         foregroundColor: AppColors.slate950,
                         minimumSize: const Size.fromHeight(50),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
                     const SizedBox(height: 12),
                   ],
-
-                  // Action for owner: Mark Completed button directly
                   if (_isOwnerOrAdmin && _report.status != 'completed') ...[
                     OutlinedButton.icon(
                       onPressed: _handleMarkCompleted,
-                      icon: const Icon(Icons.check_circle_outline, color: AppColors.accentEmerald),
+                      icon: Icon(Icons.check_circle_outline, color: c.successText),
                       label: const Text('Tandai Barang Berhasil Kembali ke Pemilik'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.accentEmerald,
-                        side: const BorderSide(color: AppColors.accentEmerald),
+                        foregroundColor: c.successText,
+                        side: BorderSide(color: c.successText),
                         minimumSize: const Size.fromHeight(48),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                   ],
-
                   const SizedBox(height: 30),
                 ],
               ),
@@ -753,7 +736,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: AppColors.accentAmber),
+          Icon(icon, size: 20, color: c.amberText),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -781,19 +764,6 @@ class _ReportDetailViewState extends State<ReportDetailView> {
         ],
       ),
     );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'approved':
-        return AppColors.accentEmerald;
-      case 'completed':
-        return AppColors.accentBlue;
-      case 'rejected':
-        return AppColors.danger;
-      default:
-        return AppColors.accentAmber;
-    }
   }
 
   String _getStatusLabel(String status) {

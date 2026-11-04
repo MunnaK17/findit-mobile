@@ -1,4 +1,4 @@
-import 'campus_model.dart';
+﻿import 'campus_model.dart';
 
 class UserModel {
   final dynamic id;

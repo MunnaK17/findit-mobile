@@ -1,4 +1,4 @@
-class ChatAction {
+﻿class ChatAction {
   final String label;
   final String url;
 

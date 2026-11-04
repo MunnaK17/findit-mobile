@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/constants/supabase_constants.dart';
@@ -11,6 +11,9 @@ import '../models/user_model.dart';
 class SupabaseService {
   static SupabaseClient get client => Supabase.instance.client;
 
+  /// Menyimpan pesan galat jaringan/query terakhir agar tampilan dapat merender Error State (R-27).
+  static String? lastError;
+
   static Future<void> init() async {
     await Supabase.initialize(
       url: SupabaseConstants.url,
@@ -22,8 +25,6 @@ class SupabaseService {
   }
 
   static bool get isLoggedIn => client.auth.currentUser != null;
-
-  // ================= AUTHENTICATION =================
 
   static Future<Map<String, dynamic>> login(String email, String password) async {
     final cleanEmail = email.trim().toLowerCase();
@@ -40,7 +41,6 @@ class SupabaseService {
       return {'success': false, 'message': 'Login gagal'};
     } on AuthException catch (e) {
       if (e.message.toLowerCase().contains('email not confirmed')) {
-        // Trigger kirim ulang OTP ke email user
         try {
           await client.auth.resend(
             type: OtpType.signup,
@@ -73,7 +73,6 @@ class SupabaseService {
   }) async {
     final cleanEmail = email.trim().toLowerCase();
 
-    // Validasi domain resmi BSI
     if (!RegExp(r'^[^@\s]+@([a-zA-Z0-9-]+\.)*bsi\.ac\.id$').hasMatch(cleanEmail)) {
       return {
         'success': false,
@@ -238,8 +237,6 @@ class SupabaseService {
     }
   }
 
-  // ================= DATA SERVICES =================
-
   static Future<List<CampusModel>> getCampuses() async {
     try {
       final data = await client
@@ -251,6 +248,7 @@ class SupabaseService {
       return (data as List).map((e) => CampusModel.fromJson(e)).toList();
     } catch (e) {
       debugPrint("Error getCampuses: $e");
+      lastError = 'Gagal memuat daftar cabang kampus. Periksa koneksi internet Anda.';
       return [];
     }
   }
@@ -261,6 +259,7 @@ class SupabaseService {
       return (data as List).map((e) => CategoryModel.fromJson(e)).toList();
     } catch (e) {
       debugPrint("Error getCategories: $e");
+      lastError = 'Gagal memuat daftar kategori barang.';
       return [];
     }
   }
@@ -272,6 +271,7 @@ class SupabaseService {
     int? campusId,
   }) async {
     try {
+      lastError = null;
       var query = client.from('reports').select('''
         *,
         campus:campuses(*),
@@ -296,6 +296,7 @@ class SupabaseService {
       return (data as List).map((e) => ReportModel.fromJson(e)).toList();
     } catch (e) {
       debugPrint("Error getReports: $e");
+      lastError = 'Gagal memuat daftar laporan dari server. Periksa koneksi internet Anda.';
       return [];
     }
   }
@@ -305,6 +306,7 @@ class SupabaseService {
     if (user == null) return [];
 
     try {
+      lastError = null;
       final data = await client
           .from('reports')
           .select('*, campus:campuses(*), category:categories(*)')
@@ -314,6 +316,7 @@ class SupabaseService {
       return (data as List).map((e) => ReportModel.fromJson(e)).toList();
     } catch (e) {
       debugPrint("Error getMyReports: $e");
+      lastError = 'Gagal memuat riwayat laporan Anda. Silakan coba lagi.';
       return [];
     }
   }
@@ -439,6 +442,7 @@ class SupabaseService {
     if (user == null) return [];
 
     try {
+      lastError = null;
       final data = await client
           .from('claims')
           .select('*, report:reports(*, campus:campuses(*))')
@@ -448,6 +452,7 @@ class SupabaseService {
       return (data as List).map((e) => ClaimModel.fromJson(e)).toList();
     } catch (e) {
       debugPrint("Error getMyClaims: $e");
+      lastError = 'Gagal memuat daftar pengajuan klaim Anda. Silakan coba lagi.';
       return [];
     }
   }
