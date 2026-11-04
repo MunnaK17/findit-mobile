@@ -1,4 +1,4 @@
-﻿import 'campus_model.dart';
+import 'campus_model.dart';
 import 'category_model.dart';
 import 'user_model.dart';
 
@@ -56,9 +56,13 @@ class ReportModel {
   }
 
   String? get fullFotoUrl {
-    if (fotoBarang == null || fotoBarang!.isEmpty) return null;
-    if (fotoBarang!.startsWith('http')) return fotoBarang;
-    return "https://ulrxqbvccwhcvywssjfb.supabase.co/storage/v1/object/public/reports/$fotoBarang";
+    if (fotoBarang == null || fotoBarang!.trim().isEmpty) return null;
+    final clean = fotoBarang!.trim();
+    if (clean.startsWith('http://') || clean.startsWith('https://')) return clean;
+    if (clean.startsWith('reports/')) {
+      return "https://ulrxqbvccwhcvywssjfb.supabase.co/storage/v1/object/public/reports/$clean";
+    }
+    return "https://ulrxqbvccwhcvywssjfb.supabase.co/storage/v1/object/public/reports/reports/$clean";
   }
 
   factory ReportModel.fromJson(Map<String, dynamic> json) {

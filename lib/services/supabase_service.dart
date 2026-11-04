@@ -329,29 +329,77 @@ class SupabaseService {
     required String deskripsi,
     required String lokasi,
     required String tanggalKejadian,
-    File? imageFile,
+    dynamic imageFile,
+    Uint8List? imageBytes,
+    String? imageName,
   }) async {
     final user = client.auth.currentUser;
 
     try {
       String? photoUrl;
 
-      if (imageFile != null) {
-        try {
-          final bytes = await imageFile.readAsBytes();
-          final ext = imageFile.path.split('.').last;
-          final fileName = "${DateTime.now().millisecondsSinceEpoch}_${user?.id ?? 'guest'}.$ext";
-          final path = "reports/$fileName";
+      Uint8List? bytesToUpload;
+      String rawExt = 'jpg';
 
+      if (imageBytes != null && imageBytes.isNotEmpty) {
+        bytesToUpload = imageBytes;
+        if (imageName != null && imageName.contains('.')) {
+          rawExt = imageName.split('.').last;
+        }
+      } else if (imageFile != null) {
+        if (imageFile is File) {
+          bytesToUpload = await imageFile.readAsBytes();
+          rawExt = imageFile.path.split('.').last;
+        } else {
+          try {
+            bytesToUpload = await imageFile.readAsBytes();
+            final name = imageFile.name ?? imageFile.path ?? '';
+            if (name.toString().contains('.')) {
+              rawExt = name.toString().split('.').last;
+            }
+          } catch (e) {
+            debugPrint("Error reading image bytes from imageFile: $e");
+          }
+        }
+      }
+
+      if (bytesToUpload != null && bytesToUpload.isNotEmpty) {
+        final cleanExt = rawExt.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+        final safeExt = (cleanExt == 'png' || cleanExt == 'webp' || cleanExt == 'gif')
+            ? cleanExt
+            : 'jpg';
+        final mimeType = safeExt == 'png'
+            ? 'image/png'
+            : (safeExt == 'webp' ? 'image/webp' : (safeExt == 'gif' ? 'image/gif' : 'image/jpeg'));
+
+        final fileName = "${DateTime.now().millisecondsSinceEpoch}_${user?.id ?? 'guest'}.$safeExt";
+        final path = "reports/$fileName";
+
+        try {
           await client.storage.from(SupabaseConstants.reportsBucket).uploadBinary(
                 path,
-                bytes,
-                fileOptions: FileOptions(contentType: 'image/$ext', upsert: true),
+                bytesToUpload,
+                fileOptions: FileOptions(contentType: mimeType, upsert: true),
               );
 
           photoUrl = client.storage.from(SupabaseConstants.reportsBucket).getPublicUrl(path);
+          debugPrint("Foto berhasil diunggah ke Supabase Storage: $photoUrl");
         } catch (e) {
           debugPrint("Failed upload image to Supabase: $e");
+          try {
+            // Fallback retry without upsert
+            final retryName = "${DateTime.now().millisecondsSinceEpoch}_retry_${user?.id ?? 'guest'}.$safeExt";
+            final retryPath = "reports/$retryName";
+            await client.storage.from(SupabaseConstants.reportsBucket).uploadBinary(
+                  retryPath,
+                  bytesToUpload,
+                  fileOptions: FileOptions(contentType: mimeType, upsert: false),
+                );
+            photoUrl = client.storage.from(SupabaseConstants.reportsBucket).getPublicUrl(retryPath);
+            debugPrint("Fallback retry upload berhasil: $photoUrl");
+          } catch (e2) {
+            debugPrint("Fallback upload retry also failed: $e2");
+          }
         }
       }
 

@@ -197,6 +197,24 @@ class _CreateReportViewState extends State<CreateReportView> {
 
     setState(() => _isLoading = true);
 
+    Uint8List? imageBytes;
+    String? imageName;
+    if (_pickedXFile != null) {
+      try {
+        imageBytes = await _pickedXFile!.readAsBytes();
+        imageName = _pickedXFile!.name;
+      } catch (e) {
+        debugPrint('Error reading picked file bytes: $e');
+      }
+    } else if (_imageFile != null) {
+      try {
+        imageBytes = await _imageFile!.readAsBytes();
+        imageName = _imageFile!.path.split(Platform.pathSeparator).last;
+      } catch (e) {
+        debugPrint('Error reading image file bytes: $e');
+      }
+    }
+
     final res = await ReportService.createReport(
       categoryId: _selectedCategoryId!,
       campusId: _selectedCampusId,
@@ -205,7 +223,9 @@ class _CreateReportViewState extends State<CreateReportView> {
       deskripsi: _deskripsiController.text.trim(),
       lokasi: _lokasiController.text.trim(),
       tanggalKejadian: _tanggalController.text.trim(),
-      imageFile: _imageFile,
+      imageFile: _imageFile ?? _pickedXFile,
+      imageBytes: imageBytes,
+      imageName: imageName,
     );
 
     if (mounted) {

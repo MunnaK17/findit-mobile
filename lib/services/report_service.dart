@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:typed_data';
 import '../models/campus_model.dart';
 import '../models/category_model.dart';
 import '../models/report_model.dart';
@@ -39,7 +39,9 @@ class ReportService {
     required String deskripsi,
     required String lokasi,
     required String tanggalKejadian,
-    File? imageFile,
+    dynamic imageFile,
+    Uint8List? imageBytes,
+    String? imageName,
   }) async {
     return await SupabaseService.createReport(
       categoryId: categoryId,
@@ -50,6 +52,8 @@ class ReportService {
       lokasi: lokasi,
       tanggalKejadian: tanggalKejadian,
       imageFile: imageFile,
+      imageBytes: imageBytes,
+      imageName: imageName,
     );
   }
 
