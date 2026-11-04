@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/colors.dart';
 import '../../models/report_model.dart';
 import '../../services/auth_service.dart';
@@ -33,42 +32,6 @@ class _ReportDetailViewState extends State<ReportDetailView> {
         _isOwnerOrAdmin = user != null &&
             (user.isAdmin || (user.id == _report.idUser));
       });
-    }
-  }
-
-  Future<void> _launchWhatsApp(String phone, String itemName) async {
-    var cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
-    if (cleanPhone.startsWith('0')) {
-      cleanPhone = '62${cleanPhone.substring(1)}';
-    } else if (!cleanPhone.startsWith('62')) {
-      cleanPhone = '62$cleanPhone';
-    }
-
-    final message = Uri.encodeComponent(
-      'Halo, saya melihat laporan di aplikasi FindIT terkait barang: *$itemName*. Apakah barang tersebut masih ada / sudah bisa dikoordinasikan?',
-    );
-    final url = Uri.parse('https://wa.me/$cleanPhone?text=$message');
-
-    try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tidak dapat membuka WhatsApp'),
-            backgroundColor: AppColors.danger,
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal membuka WhatsApp: $e'),
-          backgroundColor: AppColors.danger,
-        ),
-      );
     }
   }
 
@@ -297,7 +260,6 @@ class _ReportDetailViewState extends State<ReportDetailView> {
     final badgeBg = isHilang ? c.amberBg : c.tealBg;
     final statusText = c.statusTextColor(_report.status);
     final statusBg = c.statusBgColor(_report.status);
-    final contactPhone = _report.user?.phone;
 
     return Scaffold(
       backgroundColor: c.scaffoldBg,
@@ -578,27 +540,26 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                               ),
                             ],
                           ),
-                          if (contactPhone != null && contactPhone.isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            Divider(height: 1, color: c.cardBorder),
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: () => _launchWhatsApp(contactPhone, _report.namaBarang),
-                                icon: const Icon(Icons.chat_rounded, color: AppColors.slate950, size: 18),
-                                label: const Text('Hubungi via WhatsApp (Pelapor)'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.statusReturned,
-                                  foregroundColor: AppColors.slate950,
-                                  minimumSize: const Size.fromHeight(48),
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                          const SizedBox(height: 12),
+                          Divider(height: 1, color: c.cardBorder),
+                          const SizedBox(height: 10),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.shield_outlined, size: 16, color: c.amberText),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Seluruh koordinasi & serah terima barang wajib melalui Resepsionis / Admin ${_report.campus?.namaKampus ?? "Cabang Kampus"}.',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: c.textMuted,
+                                    height: 1.4,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ],
                       ),
                     ),

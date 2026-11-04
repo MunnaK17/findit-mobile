@@ -1099,7 +1099,7 @@ class _ProfileViewState extends State<ProfileView> {
       },
       {
         'q': '3. Bagaimana serah terima barang dilakukan?',
-        'a': 'Anda dapat menghubungi pelapor melalui tombol WhatsApp di detail laporan (jika pelapor mencantumkan nomor kontak) atau berkoordinasi di pos keamanan kampus UBSI.',
+        'a': 'Seluruh serah terima barang temuan wajib dilakukan melalui Resepsionis / Admin cabang kampus UBSI terkait. Pemilik datang langsung untuk verifikasi identitas dan penandatanganan Berita Acara.',
       },
     ];
 
