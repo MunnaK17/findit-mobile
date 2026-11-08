@@ -93,19 +93,15 @@ class _ChatbotViewState extends State<ChatbotView> {
     }
   }
 
+  /// URL aksi dikirim Edge Function chatbot (ACTION_* di supabase/functions/chatbot/index.ts).
   void _handleAction(ChatAction action) {
-    final url = action.url.toLowerCase();
-    if (url.contains('lapor') || url.contains('report')) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const CreateReportView()),
-      );
-    } else if (url.contains('klaim') || url.contains('claim')) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const MyClaimsView()),
-      );
-    }
+    final Widget? page = switch (action.url) {
+      'findit://create-report' => const CreateReportView(),
+      'findit://my-claims' => const MyClaimsView(),
+      _ => null,
+    };
+    if (page == null) return;
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
 
   @override

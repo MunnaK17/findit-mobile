@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
-import '../../core/constants/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../main.dart';
 import '../../services/auth_service.dart';
@@ -27,59 +25,6 @@ class _LoginViewState extends State<LoginView> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  void _showServerConfigDialog() {
-    final c = FinditColors.of(context);
-    final ipController = TextEditingController(
-      text: ApiConstants.apiHost.replaceAll('http://', '').replaceAll('https://', ''),
-    );
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: c.sheetBg,
-        title: Text(
-          'Pengaturan Host Server API',
-          style: TextStyle(color: c.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '• USB Cable: 127.0.0.1:8000 (pastikan adb reverse aktif)\n• WiFi Laptop: 192.168.1.9:8000',
-              style: TextStyle(fontSize: 12, color: c.textMuted, height: 1.4),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: ipController,
-              style: TextStyle(color: c.inputText),
-              decoration: const InputDecoration(
-                labelText: 'Host API',
-                hintText: '127.0.0.1:8000',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Batal', style: TextStyle(color: c.textMuted)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              ApiConstants.setHost(ipController.text.trim());
-              Navigator.pop(context);
-              setState(() {});
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Host diubah menjadi: ${ApiConstants.apiHost}')),
-              );
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _handleLogin() async {
@@ -150,13 +95,6 @@ class _LoginViewState extends State<LoginView> {
             tooltip: c.isDark ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap',
             onPressed: () => themeProvider.toggleTheme(),
           ),
-          // Host API hanya dipakai chatbot saat development (adb reverse / WiFi laptop), tidak untuk build release.
-          if (kDebugMode)
-            IconButton(
-              icon: Icon(Icons.dns_outlined, color: c.textMuted, size: 20),
-              tooltip: 'Pengaturan Server API',
-              onPressed: _showServerConfigDialog,
-            ),
         ],
       ),
       body: SafeArea(
