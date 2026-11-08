@@ -276,7 +276,7 @@ class SupabaseService {
         *,
         campus:campuses(*),
         category:categories(*),
-        user:profiles(*)
+        user:public_profiles(*)
       ''').inFilter('status', ['approved', 'completed']);
 
       if (jenis != null) {
@@ -289,7 +289,9 @@ class SupabaseService {
         query = query.eq('id_campus', campusId);
       }
       if (search != null && search.isNotEmpty) {
-        query = query.or('nama_barang.ilike.%$search%,deskripsi.ilike.%$search%,lokasi.ilike.%$search%');
+        // Nilai dibungkus tanda kutip agar koma, titik, dan kurung dari user tidak dibaca sebagai sintaks filter.
+        final pattern = '"%${search.replaceAll(r'\', r'\\').replaceAll('"', r'\"')}%"';
+        query = query.or('nama_barang.ilike.$pattern,deskripsi.ilike.$pattern,lokasi.ilike.$pattern');
       }
 
       final data = await query.order('created_at', ascending: false);
@@ -466,7 +468,11 @@ class SupabaseService {
     }
 
     try {
-      await client.from('reports').update({'status': 'completed'}).eq('id', id);
+      // RLS menolak update langsung ke completed, jadi perubahan lewat RPC yang memeriksa pemilik dan status approved.
+      final updated = await client.rpc('mark_report_completed', params: {'p_report_id': id});
+      if (updated != true) {
+        return {'success': false, 'message': 'Hanya laporan terverifikasi milik Anda yang dapat ditandai selesai.'};
+      }
       return {'success': true, 'message': 'Laporan ditandai selesai / barang telah kembali'};
     } catch (e) {
       debugPrint("Error markReportCompleted: $e");
