@@ -1,3 +1,4 @@
+import '../core/constants/supabase_constants.dart';
 import 'campus_model.dart';
 import 'category_model.dart';
 import 'user_model.dart';
@@ -60,9 +61,9 @@ class ReportModel {
     final clean = fotoBarang!.trim();
     if (clean.startsWith('http://') || clean.startsWith('https://')) return clean;
     if (clean.startsWith('reports/')) {
-      return "https://ulrxqbvccwhcvywssjfb.supabase.co/storage/v1/object/public/reports/$clean";
+      return "${SupabaseConstants.url}/storage/v1/object/public/${SupabaseConstants.reportsBucket}/$clean";
     }
-    return "https://ulrxqbvccwhcvywssjfb.supabase.co/storage/v1/object/public/reports/reports/$clean";
+    return "${SupabaseConstants.url}/storage/v1/object/public/${SupabaseConstants.reportsBucket}/reports/$clean";
   }
 
   factory ReportModel.fromJson(Map<String, dynamic> json) {

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/constants/colors.dart';
@@ -149,11 +150,13 @@ class _LoginViewState extends State<LoginView> {
             tooltip: c.isDark ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap',
             onPressed: () => themeProvider.toggleTheme(),
           ),
-          IconButton(
-            icon: Icon(Icons.dns_outlined, color: c.textMuted, size: 20),
-            tooltip: 'Pengaturan Server API',
-            onPressed: _showServerConfigDialog,
-          ),
+          // Host API hanya dipakai chatbot saat development (adb reverse / WiFi laptop), tidak untuk build release.
+          if (kDebugMode)
+            IconButton(
+              icon: Icon(Icons.dns_outlined, color: c.textMuted, size: 20),
+              tooltip: 'Pengaturan Server API',
+              onPressed: _showServerConfigDialog,
+            ),
         ],
       ),
       body: SafeArea(

@@ -21,16 +21,4 @@ class ClaimService {
       buktiKepemilikan: buktiKepemilikan,
     );
   }
-
-  static Future<Map<String, dynamic>> createClaim({
-    required int reportId,
-    required String pesanKlaim,
-    String? buktiKepemilikan,
-  }) async {
-    return await submitClaim(
-      reportId: reportId,
-      pesanKlaim: pesanKlaim,
-      buktiKepemilikan: buktiKepemilikan,
-    );
-  }
 }

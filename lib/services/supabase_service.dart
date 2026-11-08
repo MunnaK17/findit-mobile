@@ -336,9 +336,13 @@ class SupabaseService {
     String? imageName,
   }) async {
     final user = client.auth.currentUser;
+    if (user == null) {
+      return {'success': false, 'message': 'Silakan masuk terlebih dahulu untuk membuat laporan.'};
+    }
 
     try {
       String? photoUrl;
+      final hasPhoto = imageFile != null || (imageBytes != null && imageBytes.isNotEmpty);
 
       Uint8List? bytesToUpload;
       String rawExt = 'jpg';
@@ -374,39 +378,32 @@ class SupabaseService {
             ? 'image/png'
             : (safeExt == 'webp' ? 'image/webp' : (safeExt == 'gif' ? 'image/gif' : 'image/jpeg'));
 
-        final fileName = "${DateTime.now().millisecondsSinceEpoch}_${user?.id ?? 'guest'}.$safeExt";
+        // Nama file unik per user dan milidetik, jadi upload baru tidak perlu upsert (cukup policy INSERT).
+        final fileName = "${DateTime.now().millisecondsSinceEpoch}_${user.id}.$safeExt";
         final path = "reports/$fileName";
 
         try {
           await client.storage.from(SupabaseConstants.reportsBucket).uploadBinary(
                 path,
                 bytesToUpload,
-                fileOptions: FileOptions(contentType: mimeType, upsert: true),
+                fileOptions: FileOptions(contentType: mimeType),
               );
-
           photoUrl = client.storage.from(SupabaseConstants.reportsBucket).getPublicUrl(path);
-          debugPrint("Foto berhasil diunggah ke Supabase Storage: $photoUrl");
         } catch (e) {
           debugPrint("Failed upload image to Supabase: $e");
-          try {
-            // Fallback retry without upsert
-            final retryName = "${DateTime.now().millisecondsSinceEpoch}_retry_${user?.id ?? 'guest'}.$safeExt";
-            final retryPath = "reports/$retryName";
-            await client.storage.from(SupabaseConstants.reportsBucket).uploadBinary(
-                  retryPath,
-                  bytesToUpload,
-                  fileOptions: FileOptions(contentType: mimeType, upsert: false),
-                );
-            photoUrl = client.storage.from(SupabaseConstants.reportsBucket).getPublicUrl(retryPath);
-            debugPrint("Fallback retry upload berhasil: $photoUrl");
-          } catch (e2) {
-            debugPrint("Fallback upload retry also failed: $e2");
-          }
         }
       }
 
+      // Foto tidak bisa ditambahkan setelah laporan dibuat, jadi laporan tidak disimpan tanpa foto yang dipilih.
+      if (hasPhoto && photoUrl == null) {
+        return {
+          'success': false,
+          'message': 'Foto gagal diunggah, laporan belum disimpan. Coba lagi atau hapus foto.',
+        };
+      }
+
       final res = await client.from('reports').insert({
-        'id_user': user?.id,
+        'id_user': user.id,
         'id_category': categoryId,
         'id_campus': campusId,
         'jenis_laporan': jenisLaporan,
