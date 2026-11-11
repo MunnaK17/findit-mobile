@@ -48,3 +48,6 @@ app.*.map.json
 .widget_preview/
 
 *.apk
+
+# Firebase: konfigurasi per project, ambil dari Firebase Console
+/android/app/google-services.json

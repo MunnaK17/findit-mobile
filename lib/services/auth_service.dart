@@ -1,4 +1,5 @@
 import '../models/user_model.dart';
+import 'push_service.dart';
 import 'supabase_service.dart';
 
 class AuthService {
@@ -48,6 +49,7 @@ class AuthService {
   }
 
   static Future<bool> logout() async {
+    await PushService.unregister();
     return await SupabaseService.logout();
   }
 

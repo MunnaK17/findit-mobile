@@ -4,6 +4,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Push notification (FCM) butuh android/app/google-services.json dari Firebase Console.
+// Tanpa file itu aplikasi tetap bisa di-build; push saja yang tidak aktif.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.findit.campus.findit_mobile"
     compileSdk = flutter.compileSdkVersion

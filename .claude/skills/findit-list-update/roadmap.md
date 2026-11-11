@@ -15,7 +15,7 @@ Dibuat: 2026-11-08 (setelah redesign Figma selesai)
 |---|---|---|---|---|
 | [x] | Notifikasi email (Gmail SMTP): laporan diverifikasi/ditolak, klaim masuk, klaim disetujui/ditolak | Pengguna harus buka app untuk tahu status; ikon lonceng di mockup dihapus karena belum ada fungsinya | Edge Function `notify-email`, tabel `email_notifications`, supabase/email_notifications.sql | 2026-11-09 |
 | [x] | Notifikasi in-app: lonceng + badge realtime di Beranda, halaman Notifikasi | Pengguna bisa melihat kabar laporan/klaim tanpa membuka email | tabel `app_notifications`, lib/views/notifications/, supabase/app_notifications.sql | 2026-11-09 |
-| [ ] | Push notification di HP (FCM): muncul di bar notifikasi walau app ditutup | In-app hanya terlihat saat app dibuka | `firebase_messaging` di pubspec.yaml, tabel `device_tokens`, `google-services.json` di android/app | |
+| [~] | Push notification di HP (FCM): muncul di bar notifikasi walau app ditutup | In-app hanya terlihat saat app dibuka | `firebase_messaging` di pubspec.yaml, tabel `device_tokens`, `google-services.json` di android/app | 2026-11-11 |
 | [x] | Edit / ganti foto laporan | Form edit di report_detail_view.dart hanya mengubah teks | `_showEditDialog` di lib/views/reports/report_detail_view.dart | 2026-11-09 |
 | [x] | Masa berlaku laporan + tombol "Barang sudah ketemu" | Laporan lama menumpuk tanpa batas | kolom `expires_at`, RPC `extend_report`, supabase/report_lifecycle.sql | 2026-11-09 |
 | [x] | Paginasi daftar laporan | `getReports` mengambil semua baris sekaligus | `.range(` di getReports, infinite scroll di search_view.dart | 2026-11-09 |

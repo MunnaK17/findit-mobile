@@ -5,9 +5,12 @@
 // Secret yang diperlukan (Dashboard > Edge Functions > Secrets):
 //   GMAIL_USER          alamat Gmail pengirim, mis. findit.ubsi@gmail.com
 //   GMAIL_APP_PASSWORD  App Password 16 karakter dari akun Google tersebut
+//   FCM_SERVICE_ACCOUNT isi JSON service account Firebase (Project settings > Service accounts).
+//                       Opsional: tanpa secret ini push notification dilewati, email tetap jalan.
 // SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY disediakan otomatis oleh Supabase.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import nodemailer from "npm:nodemailer@6.9.16";
+import { importPKCS8, SignJWT } from "npm:jose@5.9.6";
 
 type EventName =
   | "report_approved"
@@ -167,6 +170,82 @@ async function buildMail(event: EventName, id: number): Promise<Mail | null> {
   };
 }
 
+type ServiceAccount = { project_id: string; client_email: string; private_key: string };
+
+let fcmToken: { value: string; expires: number } | null = null;
+
+/** Access token OAuth untuk FCM HTTP v1, di-cache selama instance function hidup. */
+async function fcmAccessToken(sa: ServiceAccount): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  if (fcmToken && fcmToken.expires - 60 > now) return fcmToken.value;
+  const key = await importPKCS8(sa.private_key, "RS256");
+  const assertion = await new SignJWT({ scope: "https://www.googleapis.com/auth/firebase.messaging" })
+    .setProtectedHeader({ alg: "RS256", typ: "JWT" })
+    .setIssuer(sa.client_email)
+    .setAudience("https://oauth2.googleapis.com/token")
+    .setIssuedAt(now)
+    .setExpirationTime(now + 3600)
+    .sign(key);
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion,
+    }),
+  });
+  if (!res.ok) throw new Error(`oauth ${res.status}: ${await res.text()}`);
+  const body = await res.json();
+  fcmToken = { value: body.access_token, expires: now + Number(body.expires_in ?? 3600) };
+  return fcmToken.value;
+}
+
+/** Kirim push ke semua perangkat penerima. Token yang sudah mati dihapus. Tidak pernah melempar error. */
+async function sendPush(mail: Mail, event: EventName) {
+  const raw = Deno.env.get("FCM_SERVICE_ACCOUNT");
+  if (!raw) return;
+  try {
+    const sa = JSON.parse(raw) as ServiceAccount;
+    const { data: tokens, error } = await db
+      .from("device_tokens")
+      .select("token")
+      .eq("user_id", mail.recipient);
+    if (error) throw error;
+    if (!tokens?.length) return;
+
+    const access = await fcmAccessToken(sa);
+    const url = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
+    await Promise.all(tokens.map(async ({ token }) => {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${access}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: {
+            token,
+            notification: { title: mail.subject, body: mail.lines[mail.lines.length - 1] },
+            data: {
+              event,
+              report_id: String(mail.reportId),
+              claim_id: mail.claimId == null ? "" : String(mail.claimId),
+            },
+            android: { priority: "high", notification: { channel_id: "findit_updates" } },
+          },
+        }),
+      });
+      if (res.ok) return;
+      const text = await res.text();
+      // 404 UNREGISTERED / 400 INVALID_ARGUMENT pada token: aplikasi sudah dihapus atau token kedaluwarsa.
+      if (res.status === 404 || (res.status === 400 && text.includes("registration token"))) {
+        await db.from("device_tokens").delete().eq("token", token);
+      } else {
+        console.error(`fcm ${res.status}:`, text.slice(0, 300));
+      }
+    }));
+  } catch (e) {
+    console.error("push gagal:", e instanceof Error ? e.message : String(e));
+  }
+}
+
 function renderHtml(name: string, mail: Mail) {
   const rows = mail.lines.map((l) => `<p style="margin:0 0 12px">${escapeHtml(l)}</p>`).join("");
   const note = mail.note
@@ -224,7 +303,7 @@ Deno.serve(async (req) => {
   if (!mail) return json({ skipped: "data tidak cocok dengan event" });
 
   // Notifikasi di dalam app selalu dibuat, terlepas dari pengaturan email.
-  const { error: inAppErr } = await db.from("app_notifications").upsert(
+  const { data: inApp, error: inAppErr } = await db.from("app_notifications").upsert(
     {
       user_id: mail.recipient,
       event,
@@ -234,8 +313,10 @@ Deno.serve(async (req) => {
       body: mail.lines[mail.lines.length - 1],
     },
     { onConflict: "user_id,event,report_id,claim_id", ignoreDuplicates: true },
-  );
+  ).select("id");
   if (inAppErr) console.error("app_notifications gagal:", inAppErr.message);
+  // Baris baru berarti event ini belum pernah diproses; push hanya sekali per event.
+  if (inApp?.length) await sendPush(mail, event);
 
   const { data: profile } = await db
     .from("profiles")

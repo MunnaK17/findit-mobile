@@ -7,6 +7,7 @@ import 'reports/create_report_view.dart';
 import 'search/search_view.dart';
 import 'activity/activity_view.dart';
 import 'profile/profile_view.dart';
+import '../services/push_service.dart';
 
 class MainNavigationView extends StatefulWidget {
   final int initialIndex;
@@ -31,6 +32,7 @@ class _MainNavigationViewState extends State<MainNavigationView> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) => PushService.markNavigationReady());
   }
 
   void _onItemTapped(int index) {
