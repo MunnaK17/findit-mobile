@@ -1,10 +1,17 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../core/constants/colors.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/findit_widgets.dart';
 import '../../models/report_model.dart';
+
 import '../../services/auth_service.dart';
 import '../../services/claim_service.dart';
 import '../../services/report_service.dart';
 import '../claims/create_claim_view.dart';
+import 'photo_viewer_view.dart';
 
 class ReportDetailView extends StatefulWidget {
   final ReportModel report;
@@ -18,7 +25,10 @@ class ReportDetailView extends StatefulWidget {
 class _ReportDetailViewState extends State<ReportDetailView> {
   late ReportModel _report;
   bool _isOwnerOrAdmin = false;
+  bool _isAdmin = false;
   bool _hasClaimed = false;
+  bool _isOwner = false;
+  bool _busy = false;
 
   @override
   void initState() {
@@ -37,6 +47,8 @@ class _ReportDetailViewState extends State<ReportDetailView> {
       setState(() {
         _isOwnerOrAdmin = user != null &&
             (user.isAdmin || (user.id == _report.idUser));
+        _isAdmin = user?.isAdmin ?? false;
+        _isOwner = user != null && user.id == _report.idUser;
         _hasClaimed = claimed;
       });
     }
@@ -46,159 +58,186 @@ class _ReportDetailViewState extends State<ReportDetailView> {
     final titleController = TextEditingController(text: _report.namaBarang);
     final descController = TextEditingController(text: _report.deskripsi);
     final locController = TextEditingController(text: _report.lokasi);
-    final dateController = TextEditingController(text: _report.tanggalKejadian);
     final formKey = GlobalKey<FormState>();
+    // Isi laporan publik yang diubah pemiliknya harus diverifikasi ulang oleh admin.
+    final requireReverification = !_isAdmin && _report.status == 'approved';
+    Uint8List? newPhoto;
+    String? newPhotoName;
+    bool saving = false;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      showDragHandle: true,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
           final cs = FinditColors.of(context);
+
+          Future<void> pickPhoto(ImageSource source) async {
+            try {
+              final picked = await ImagePicker().pickImage(
+                source: source,
+                maxWidth: 1024,
+                maxHeight: 1024,
+                imageQuality: 85,
+              );
+              if (picked == null) return;
+              final bytes = await picked.readAsBytes();
+              setModalState(() {
+                newPhoto = bytes;
+                newPhotoName = picked.name;
+              });
+            } catch (e) {
+              debugPrint('Error picking image: $e');
+            }
+          }
+
+          Future<void> save() async {
+            if (!formKey.currentState!.validate()) return;
+            setModalState(() => saving = true);
+            final messenger = ScaffoldMessenger.of(this.context);
+            final res = await ReportService.updateReport(
+              id: _report.id,
+              namaBarang: titleController.text.trim(),
+              deskripsi: descController.text.trim(),
+              lokasi: locController.text.trim(),
+              tanggalKejadian: _report.tanggalKejadian,
+              categoryId: _report.idCategory,
+              campusId: _report.idCampus,
+              requireReverification: requireReverification,
+              newPhotoBytes: newPhoto,
+              newPhotoName: newPhotoName,
+              oldPhotoUrl: _report.fullFotoUrl,
+            );
+            if (!mounted) return;
+            if (res['success'] != true) {
+              setModalState(() => saving = false);
+              messenger.showSnackBar(SnackBar(
+                content: Text(res['message'] ?? 'Gagal memperbarui'),
+                backgroundColor: AppColors.danger,
+              ));
+              return;
+            }
+            if (ctx.mounted) Navigator.pop(ctx);
+            setState(() {
+              _report = _report.copyWith(
+                namaBarang: titleController.text.trim(),
+                deskripsi: descController.text.trim(),
+                lokasi: locController.text.trim(),
+                fotoBarang: res['foto_barang'] as String?,
+                status: requireReverification ? 'pending' : null,
+              );
+            });
+            messenger.showSnackBar(SnackBar(
+              content: Text(requireReverification
+                  ? 'Laporan diperbarui dan menunggu verifikasi admin'
+                  : 'Laporan berhasil diperbarui'),
+            ));
+          }
+
+          final currentUrl = _report.fullFotoUrl;
+          final Widget photo = newPhoto != null
+              ? Image.memory(newPhoto!,
+                  width: 96, height: 96, fit: BoxFit.cover, semanticLabel: 'Foto baru')
+              : ReportThumb(url: currentUrl, semanticLabel: 'Foto saat ini', size: 96);
+
           return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-              decoration: BoxDecoration(
-                color: cs.sheetBg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               child: Form(
                 key: formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Center(
-                      child: Container(
-                        width: 44,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 20),
-                        decoration: BoxDecoration(
-                          color: cs.cardBorder,
-                          borderRadius: BorderRadius.circular(2),
+                    Text('Edit Laporan', style: AppTypography.titleMedium(cs.textPrimary)),
+                    if (requireReverification) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Setelah disimpan, laporan kembali menunggu verifikasi admin dan tidak tampil di daftar publik sampai disetujui.',
+                        style: AppTypography.caption(cs.textSecondary).copyWith(height: 1.45),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(AppColors.radiusMd),
+                          child: photo,
                         ),
-                      ),
-                    ),
-                    Text(
-                      'Edit Laporan Barang',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: cs.textPrimary,
-                      ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              OutlinedButton.icon(
+                                onPressed: saving ? null : () => pickPhoto(ImageSource.camera),
+                                icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                                label: const Text('Kamera'),
+                              ),
+                              const SizedBox(height: 8),
+                              OutlinedButton.icon(
+                                onPressed: saving ? null : () => pickPhoto(ImageSource.gallery),
+                                icon: const Icon(Icons.photo_library_outlined, size: 18),
+                                label: Text(currentUrl == null && newPhoto == null
+                                    ? 'Tambah foto'
+                                    : 'Ganti dari galeri'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: titleController,
-                      style: TextStyle(color: cs.inputText, fontSize: 14),
-                      decoration: InputDecoration(
-                        labelText: 'Nama Barang',
-                        filled: true,
-                        fillColor: cs.inputFill,
-                      ),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Nama barang wajib diisi' : null,
+                      style: AppTypography.bodyMedium(cs.inputText),
+                      decoration: const InputDecoration(labelText: 'Nama Barang'),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Nama barang wajib diisi' : null,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: locController,
-                      style: TextStyle(color: cs.inputText, fontSize: 14),
-                      decoration: InputDecoration(
-                        labelText: 'Lokasi',
-                        filled: true,
-                        fillColor: cs.inputFill,
-                      ),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Lokasi wajib diisi' : null,
+                      style: AppTypography.bodyMedium(cs.inputText),
+                      decoration: const InputDecoration(labelText: 'Lokasi'),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Lokasi wajib diisi' : null,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: descController,
-                      maxLines: 3,
-                      style: TextStyle(color: cs.inputText, fontSize: 14),
-                      decoration: InputDecoration(
+                      minLines: 3,
+                      maxLines: 5,
+                      style: AppTypography.bodyMedium(cs.inputText),
+                      decoration: const InputDecoration(
                         labelText: 'Deskripsi / Ciri Khusus',
-                        filled: true,
-                        fillColor: cs.inputFill,
+                        alignLabelWithHint: true,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     Row(
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: BorderSide(color: cs.cardBorder),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            child: Text('Batal', style: TextStyle(color: cs.textSecondary)),
+                            onPressed: saving ? null : () => Navigator.pop(ctx),
+                            child: const Text('Batal'),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 16),
                         Expanded(
                           flex: 2,
                           child: ElevatedButton(
-                            onPressed: () async {
-                              if (!formKey.currentState!.validate()) return;
-                              final messenger = ScaffoldMessenger.of(context);
-                              Navigator.pop(ctx);
-                              final res = await ReportService.updateReport(
-                                id: _report.id,
-                                namaBarang: titleController.text.trim(),
-                                deskripsi: descController.text.trim(),
-                                lokasi: locController.text.trim(),
-                                tanggalKejadian: dateController.text.trim(),
-                                categoryId: _report.idCategory,
-                                campusId: _report.idCampus,
-                              );
-                              if (!mounted) return;
-                              if (res['success'] == true) {
-                                setState(() {
-                                  _report = ReportModel(
-                                    id: _report.id,
-                                    idUser: _report.idUser,
-                                    idCategory: _report.idCategory,
-                                    idCampus: _report.idCampus,
-                                    namaBarang: titleController.text.trim(),
-                                    deskripsi: descController.text.trim(),
-                                    lokasi: locController.text.trim(),
-                                    tanggalKejadian: dateController.text.trim(),
-                                    fotoBarang: _report.fotoBarang,
-                                    status: _report.status,
-                                    jenisLaporan: _report.jenisLaporan,
-                                    campus: _report.campus,
-                                    category: _report.category,
-                                    user: _report.user,
-                                    createdAt: _report.createdAt,
-                                  );
-                                });
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Laporan berhasil diperbarui'),
-                                    backgroundColor: AppColors.success,
-                                  ),
-                                );
-                              } else {
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Text(res['message'] ?? 'Gagal memperbarui'),
-                                    backgroundColor: AppColors.danger,
-                                  ),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.accentAmber,
-                              foregroundColor: AppColors.slate950,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              elevation: 0,
-                            ),
-                            child: const Text('Simpan Perubahan', style: TextStyle(fontWeight: FontWeight.w700)),
+                            onPressed: saving ? null : save,
+                            child: saving
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: AppColors.brandOnPrimary),
+                                  )
+                                : const Text('Simpan Perubahan'),
                           ),
                         ),
                       ],
@@ -212,6 +251,118 @@ class _ReportDetailViewState extends State<ReportDetailView> {
       ),
     );
   }
+
+  Future<void> _share(BuildContext buttonContext) async {
+    final box = buttonContext.findRenderObject() as RenderBox?;
+    await SharePlus.instance.share(ShareParams(
+      text: buildShareText(_report),
+      subject: '${_report.isHilang ? 'Barang hilang' : 'Barang temuan'}: ${_report.namaBarang}',
+      sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+    ));
+  }
+
+  Future<void> _markFound() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Barang sudah ketemu?'),
+        content: const Text(
+            'Laporan akan ditandai selesai dan tidak lagi muncul sebagai barang hilang. Tindakan ini tidak bisa dibatalkan.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Ya, sudah ketemu'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    setState(() => _busy = true);
+    final res = await ReportService.markReportCompleted(_report.id);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      if (res['success'] == true) _report = _report.copyWith(status: 'completed');
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(res['success'] == true
+          ? 'Syukurlah! Laporan ditandai selesai.'
+          : (res['message'] ?? 'Gagal menandai laporan')),
+    ));
+  }
+
+  Future<void> _extend() async {
+    setState(() => _busy = true);
+    final res = await ReportService.extendReport(_report.id);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      if (res['success'] == true) {
+        _report = _report.copyWith(expiresAt: res['expires_at'] as DateTime);
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(res['success'] == true
+          ? 'Laporan diperpanjang sampai ${_formatDay(_report.expiresAt!)}'
+          : (res['message'] ?? 'Gagal memperpanjang laporan')),
+    ));
+  }
+
+  /// Aksi khusus pemilik laporan terverifikasi: masa tayang dan tombol "Barang sudah ketemu".
+  List<Widget> _buildOwnerActions(FinditColors c) {
+    if (!_isOwner || _report.status != 'approved' || _report.expiresAt == null) return const [];
+    final expired = _report.isExpired;
+    final days = _report.daysUntilExpiry ?? 0;
+    final until = _formatDay(_report.expiresAt!);
+    return [
+      if (expired)
+        _Notice(
+          icon: Icons.history_toggle_off_rounded,
+          title: 'Laporan sudah kedaluwarsa',
+          message: 'Sejak $until laporan ini tidak tampil di daftar publik. Perpanjang bila barang masih dicari.',
+          background: c.dangerBg,
+          accent: c.dangerText,
+        )
+      else if (days <= 7)
+        _Notice(
+          icon: Icons.schedule_rounded,
+          title: 'Masa tayang hampir habis',
+          message: 'Laporan tampil di daftar publik sampai $until.',
+          background: c.amberBg,
+          accent: c.amberText,
+        )
+      else
+        _InfoRow(label: 'Tayang sampai', value: until),
+      const SizedBox(height: 16),
+      Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _busy ? null : _extend,
+              icon: const Icon(Icons.update_rounded, size: 18),
+              label: const Text('Perpanjang 30 hari'),
+            ),
+          ),
+          if (_report.isHilang) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _busy ? null : _markFound,
+                icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                label: const Text('Sudah ketemu'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    ];
+  }
+
+  String _formatDay(DateTime d) => _formatDate(d.toIso8601String());
 
   Future<void> _handleDelete() async {
     final c = FinditColors.of(context);
@@ -255,550 +406,372 @@ class _ReportDetailViewState extends State<ReportDetailView> {
             backgroundColor: AppColors.success,
           ),
         );
+      } else {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(res['message'] ?? 'Gagal menghapus laporan'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
       }
     }
+  }
+
+  Future<void> _openClaim() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => CreateClaimView(report: _report)),
+    );
+    if (result == true) _checkOwnership();
   }
 
   @override
   Widget build(BuildContext context) {
     final c = FinditColors.of(context);
-    final isHilang = _report.isHilang;
-    final badgeText = isHilang ? c.amberText : c.tealText;
-    final badgeBg = isHilang ? c.amberBg : c.tealBg;
-    final statusText = c.statusTextColor(_report.status);
-    final statusBg = c.statusBgColor(_report.status);
+    final showClaim = _report.canBeClaimed && !_isOwnerOrAdmin;
+    final canManage = _isOwnerOrAdmin && _report.status != 'completed';
 
     return Scaffold(
       backgroundColor: c.scaffoldBg,
-      appBar: AppBar(
-        backgroundColor: c.scaffoldBg,
-        elevation: 0,
-        title: Text(_report.namaBarang, style: TextStyle(color: c.textPrimary)),
-        actions: [
-          if (_isOwnerOrAdmin)
-            PopupMenuButton<String>(
-              tooltip: 'Opsi laporan',
-              icon: Icon(Icons.more_vert_rounded, color: c.textPrimary),
-              color: c.sheetBg,
-              onSelected: (val) {
-                if (val == 'edit') _showEditDialog();
-                if (val == 'delete') _handleDelete();
-              },
-              itemBuilder: (_) => [
-                PopupMenuItem(
-                  value: 'edit',
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit_outlined, size: 18, color: c.textPrimary),
-                      const SizedBox(width: 8),
-                      Text('Edit Laporan', style: TextStyle(color: c.textPrimary)),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_outline, size: 18, color: c.dangerText),
-                      const SizedBox(width: 8),
-                      Text('Hapus Laporan', style: TextStyle(color: c.dangerText)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_report.fullFotoUrl != null)
-              Image.network(
-                _report.fullFotoUrl!,
-                height: 260,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                semanticLabel: 'Foto barang ${_report.namaBarang}',
-                errorBuilder: (_, __, ___) => Container(
-                  height: 200,
-                  color: c.cardBgLight,
-                  child: Center(
-                    child: Icon(Icons.broken_image, size: 60, color: c.textMuted),
-                  ),
-                ),
-              )
-            else
-              Container(
-                height: 180,
-                color: c.cardBgLight,
-                child: Center(
-                  child: Icon(
-                    isHilang ? Icons.warning_amber_rounded : Icons.search_rounded,
-                    size: 72,
-                    color: badgeText.withValues(alpha: 0.5),
-                  ),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      body: SafeArea(
+        bottom: !showClaim,
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              sliver: SliverList.list(
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: badgeBg,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: badgeText.withValues(alpha: 0.4)),
-                        ),
-                        child: Text(
-                          isHilang ? 'Barang Hilang' : 'Barang Temuan',
-                          style: TextStyle(
-                            color: badgeText,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
+                      CircleIconButton(
+                        icon: Icons.arrow_back_rounded,
+                        tooltip: 'Kembali',
+                        onPressed: () => Navigator.maybePop(context),
+                      ),
+                      const Spacer(),
+                      if (_report.status == 'approved' || _report.status == 'completed')
+                        Builder(
+                          builder: (btnContext) => CircleIconButton(
+                            icon: Icons.share_outlined,
+                            tooltip: 'Bagikan laporan',
+                            onPressed: () => _share(btnContext),
                           ),
+                        ),
+                      if (canManage) ...[
+                        const SizedBox(width: 8),
+                        _buildManageMenu(c),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildPhoto(),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      StatusBadge(
+                        kind: badgeKindFor(
+                          isHilang: _report.isHilang,
+                          status: _report.status,
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: statusBg,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                      Flexible(
                         child: Text(
-                          _getStatusLabel(_report.status),
-                          style: TextStyle(
-                            color: statusText,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
+                          '· ${_report.relativeTime}',
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.caption(c.textMuted),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  Text(
-                    _report.namaBarang,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: c.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: c.cardBg,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: c.cardBorder),
-                    ),
-                    child: Column(
-                      children: [
-                        if (_report.campus != null) ...[
-                          _buildInfoTile(
-                            c: c,
-                            icon: Icons.domain_rounded,
-                            label: 'Cabang Kampus',
-                            value: '${_report.campus!.namaKampus} (${_report.campus!.kota})',
-                          ),
-                          Divider(height: 16, color: c.cardBorder),
-                        ],
-                        _buildInfoTile(
-                          c: c,
-                          icon: Icons.category_outlined,
-                          label: 'Kategori',
-                          value: _report.category?.namaKategori ?? 'Umum',
-                        ),
-                        Divider(height: 16, color: c.cardBorder),
-                        _buildInfoTile(
-                          c: c,
-                          icon: Icons.calendar_today_outlined,
-                          label: 'Tanggal Kejadian',
-                          value: _report.tanggalKejadian,
-                        ),
-                        Divider(height: 16, color: c.cardBorder),
-                        _buildInfoTile(
-                          c: c,
-                          icon: Icons.location_on_outlined,
-                          label: 'Lokasi',
-                          value: _report.lokasi,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Deskripsi / Ciri Khusus',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: c.textPrimary,
+                  const SizedBox(height: 12),
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      _report.namaBarang,
+                      style: AppTypography.titleLarge(c.textPrimary),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: c.cardBg,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: c.cardBorder),
-                    ),
-                    child: Text(
-                      _report.deskripsi.isNotEmpty
-                          ? _report.deskripsi
-                          : 'Tidak ada deskripsi tambahan.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: c.textSecondary,
-                        height: 1.5,
-                      ),
-                    ),
+                  Text(
+                    _report.deskripsi.isNotEmpty
+                        ? _report.deskripsi
+                        : 'Tidak ada deskripsi tambahan.',
+                    style: AppTypography.body(c.textSecondary),
                   ),
-                  if (_report.user != null) ...[
-                    const SizedBox(height: 24),
-                    Text(
-                      'Informasi Pelapor',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: c.textPrimary,
-                      ),
+                  const SizedBox(height: 16),
+                  if (_report.status != 'approved' && _report.status != 'completed')
+                    _InfoRow(
+                      label: 'Status',
+                      value: FinditColors.statusLabel(_report.status),
+                      valueColor: c.statusTextColor(_report.status),
                     ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: c.cardBg,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: c.cardBorder),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                backgroundColor: c.mintBg,
-                                child: Icon(Icons.person, color: c.mintText),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Flexible(
-                                          child: Text(
-                                            _report.user!.name,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 14,
-                                              color: c.textPrimary,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: _report.user!.isStaff ? c.tealBg : c.amberBg,
-                                            borderRadius: BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            _report.user!.roleLabel,
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w700,
-                                              color: _report.user!.isStaff ? c.tealText : c.amberText,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    if (_report.user!.nip != null && _report.user!.nip!.isNotEmpty) ...[
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'NIP: ${_report.user!.nip}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: c.textMuted,
-                                        ),
-                                      ),
-                                    ] else if (_report.user!.nim != null && _report.user!.nim!.isNotEmpty) ...[
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'NIM: ${_report.user!.nim}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: c.textMuted,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Divider(height: 1, color: c.cardBorder),
-                          const SizedBox(height: 10),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(Icons.shield_outlined, size: 16, color: c.amberText),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Seluruh koordinasi & serah terima barang wajib melalui Resepsionis / Admin ${_report.campus?.namaKampus ?? "Cabang Kampus"}.',
-                                  style: TextStyle(
-                                    fontSize: 11.5,
-                                    color: c.textMuted,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                  _InfoRow(label: 'Lokasi', value: _report.lokasi),
+                  _InfoRow(label: 'Tanggal Kejadian', value: _formatDate(_report.tanggalKejadian)),
+                  _InfoRow(
+                    label: 'Kategori',
+                    value: _report.category?.namaKategori ?? 'Umum',
+                  ),
+                  if (_report.campus != null)
+                    _InfoRow(label: 'Cabang Kampus', value: _report.campus!.namaKampus),
+                  if (_report.user != null)
+                    _InfoRow(
+                      label: 'Pelapor',
+                      value: '${_report.user!.name} (${_report.user!.roleLabel})',
                     ),
-                  ],
-                  const SizedBox(height: 24),
-                  if (_report.status == 'pending') ...[
-                    Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 18),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: c.amberBg,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: c.amberText.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.pending_actions_rounded, color: c.amberText, size: 22),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Menunggu Verifikasi Admin',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                    color: c.amberText,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Laporan ini belum tampil di beranda publik. Admin akan memvalidasi keabsahan informasi laporan via dashboard website untuk menghindari laporan palsu.',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: c.textSecondary,
-                                    height: 1.45,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                  ..._buildOwnerActions(c),
+                  if (_report.status == 'pending')
+                    _Notice(
+                      icon: Icons.pending_actions_rounded,
+                      title: 'Menunggu verifikasi admin',
+                      message:
+                          'Laporan ini belum tampil di beranda publik sampai admin memvalidasinya.',
+                      background: c.amberBg,
+                      accent: c.amberText,
                     ),
-                  ],
-                  if (_report.canBeClaimed && !_isOwnerOrAdmin) ...[
-                    if (_hasClaimed)
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 14),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: c.cardBgLight,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppColors.accentAmber.withValues(alpha: 0.3)),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: AppColors.accentAmber.withValues(alpha: 0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.hourglass_top_rounded,
-                                color: AppColors.accentAmber,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Klaim Sudah Diajukan',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
-                                      color: c.textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    'Anda sudah mengajukan klaim untuk barang ini. Pantau status verifikasinya di menu Klaim Saya.',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: c.textSecondary,
-                                      height: 1.35,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => CreateClaimView(report: _report),
-                              ),
-                            );
-                            if (result == true) {
-                              _checkOwnership();
-                            }
-                          },
-                          icon: const Icon(Icons.verified_user_rounded, color: AppColors.slate950),
-                          label: const Text('Klaim Barang Ini'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accentAmber,
-                            foregroundColor: AppColors.slate950,
-                            minimumSize: const Size.fromHeight(50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                  if (_report.isTemuan && _report.status != 'completed') ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: c.cardBgLight,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: c.cardBorder),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.assignment_outlined, color: c.tealText, size: 22),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Prosedur Berita Acara & Pengambilan',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                    color: c.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Pengambilan barang temuan dilakukan langsung di resepsionis / pos keamanan kampus. Mahasiswa/pemilik wajib memberikan keterangan untuk diinput ke formulir Berita Acara oleh Admin sebagai bukti legalitas serah terima.',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: c.textSecondary,
-                                    height: 1.45,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                  if (_report.isTemuan && _report.status != 'completed')
+                    _Notice(
+                      icon: Icons.assignment_outlined,
+                      title: 'Pengambilan barang',
+                      message:
+                          'Serah terima dilakukan di resepsionis atau pos keamanan '
+                          '${_report.campus?.namaKampus ?? 'cabang kampus'}. '
+                          'Admin mencatatnya di Berita Acara sebagai bukti serah terima.',
+                      background: c.mutedBg,
+                      accent: c.blueText,
                     ),
-                  ],
-                  const SizedBox(height: 30),
                 ],
               ),
             ),
           ],
         ),
       ),
+      bottomNavigationBar: showClaim
+          ? Container(
+              decoration: BoxDecoration(
+                color: c.scaffoldBg,
+                border: Border(top: BorderSide(color: c.cardBorder)),
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: SafeArea(
+                top: false,
+                child: ElevatedButton(
+                  onPressed: _hasClaimed ? null : _openClaim,
+                  child: Text(_hasClaimed ? 'Klaim Sudah Diajukan' : 'Klaim Barang Ini'),
+                ),
+              ),
+            )
+          : null,
     );
   }
 
-  Widget _buildInfoTile({
-    required FinditColors c,
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+  /// Foto utama; bila ada, ketuk untuk membuka layar penuh yang bisa di-zoom.
+  Widget _buildPhoto() {
+    final url = _report.fullFotoUrl;
+    final heroTag = 'report-photo-${_report.id}';
+    final thumb = ReportThumb(
+      url: url,
+      semanticLabel: 'Foto barang ${_report.namaBarang}',
+      size: double.infinity,
+      height: 220,
+      radius: AppColors.radiusXl,
+    );
+    if (url == null) return thumb;
+
+    return Semantics(
+      button: true,
+      label: 'Lihat foto ${_report.namaBarang} layar penuh',
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppColors.radiusXl),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.push(
+            context,
+            PageRouteBuilder(
+              opaque: false,
+              barrierColor: Colors.black,
+              transitionDuration: MediaQuery.of(context).disableAnimations
+                  ? Duration.zero
+                  : const Duration(milliseconds: 250),
+              pageBuilder: (_, __, ___) => PhotoViewerView(
+                url: url,
+                heroTag: heroTag,
+                title: _report.namaBarang,
+              ),
+              transitionsBuilder: (_, animation, __, child) =>
+                  FadeTransition(opacity: animation, child: child),
+            ),
+          ),
+          child: Stack(
+            children: [
+              Hero(tag: heroTag, child: thumb),
+              Positioned(
+                right: 12,
+                bottom: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(AppColors.radiusFull),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.zoom_out_map_rounded, size: 14, color: Colors.white),
+                      const SizedBox(width: 4),
+                      Text('Lihat foto', style: AppTypography.caption(Colors.white)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManageMenu(FinditColors c) {
+    final canDelete = _report.status == 'pending' || _report.status == 'rejected';
+    return Material(
+      color: c.isDark ? c.cardBg : AppColors.bgSubtle,
+      shape: CircleBorder(side: BorderSide(color: c.cardBorder)),
+      child: PopupMenuButton<String>(
+        tooltip: 'Opsi laporan',
+        icon: Icon(Icons.more_horiz_rounded, color: c.textPrimary, size: 20),
+        onSelected: (val) {
+          if (val == 'edit') _showEditDialog();
+          if (val == 'delete') _handleDelete();
+        },
+        itemBuilder: (_) => [
+          PopupMenuItem(
+            value: 'edit',
+            child: Text('Edit laporan', style: AppTypography.bodyMedium(c.textPrimary)),
+          ),
+          if (canDelete)
+            PopupMenuItem(
+              value: 'delete',
+              child: Text('Hapus laporan', style: AppTypography.bodyMedium(c.dangerText)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// "2026-11-07" menjadi "7 Nov 2026"; format lain ditampilkan apa adanya.
+  String _formatDate(String raw) {
+    final d = DateTime.tryParse(raw);
+    if (d == null) return raw;
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
+    return '${d.day} ${months[d.month - 1]} ${d.year}';
+  }
+}
+
+/// Teks yang dibagikan lewat share sheet (WhatsApp, dll).
+String buildShareText(ReportModel r) {
+  final jenis = r.isHilang ? 'BARANG HILANG' : 'BARANG TEMUAN';
+  final tempat = [r.lokasi, if (r.campus != null) r.campus!.namaKampus].join(', ');
+  final desc = r.deskripsi.trim();
+  final ciri = desc.length > 200 ? '${desc.substring(0, 200)}...' : desc;
+  final ajakan = r.status == 'completed'
+      ? 'Barang ini sudah kembali ke pemiliknya.'
+      : r.isHilang
+          ? 'Pernah melihat barang ini? Kabari lewat aplikasi FindIT UBSI.'
+          : 'Barang ini milikmu? Ajukan klaim lewat aplikasi FindIT UBSI.';
+  return [
+    '[$jenis] ${r.namaBarang}',
+    'Lokasi: $tempat',
+    'Tanggal: ${r.tanggalKejadian}',
+    if (ciri.isNotEmpty) 'Ciri: $ciri',
+    '',
+    ajakan,
+  ].join('\n');
+}
+
+/// Baris label kiri / nilai kanan dengan garis pemisah bawah.
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  const _InfoRow({required this.label, required this.value, this.valueColor});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+    return Container(
+      constraints: const BoxConstraints(minHeight: 50),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: c.cardBorder)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: c.amberText),
-          const SizedBox(width: 12),
+          Text(label, style: AppTypography.body(c.textSecondary)),
+          const SizedBox(width: 16),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: c.textMuted,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: c.textPrimary,
-                  ),
-                ),
-              ],
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: AppTypography.bodyMedium(valueColor ?? c.textPrimary)
+                  .copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  String _getStatusLabel(String status) {
-    switch (status.toLowerCase()) {
-      case 'approved':
-        return 'Terverifikasi';
-      case 'completed':
-        return 'Selesai / Dikembalikan';
-      case 'rejected':
-        return 'Ditolak';
-      default:
-        return 'Menunggu Verifikasi';
-    }
+class _Notice extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+  final Color background;
+  final Color accent;
+
+  const _Notice({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.background,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(AppColors.radiusMd),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: accent, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTypography.label(c.textPrimary)),
+                const SizedBox(height: 2),
+                Text(message, style: AppTypography.caption(c.textSecondary)
+                    .copyWith(height: 1.45)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

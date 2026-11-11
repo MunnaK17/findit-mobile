@@ -1,10 +1,11 @@
-﻿class CampusModel {
+class CampusModel {
   final int id;
   final String namaKampus;
   final String kodeKampus;
   final String kota;
   final String? alamat;
   final String? kontak;
+  final String? fotoUrl;
 
   CampusModel({
     required this.id,
@@ -13,6 +14,7 @@
     required this.kota,
     this.alamat,
     this.kontak,
+    this.fotoUrl,
   });
 
   factory CampusModel.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@
       kota: json['kota'] ?? '',
       alamat: json['alamat'],
       kontak: json['kontak'],
+      fotoUrl: json['foto_url'],
     );
   }
 
@@ -34,6 +37,7 @@
       'kota': kota,
       'alamat': alamat,
       'kontak': kontak,
+      'foto_url': fotoUrl,
     };
   }
 }

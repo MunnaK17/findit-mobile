@@ -1,9 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider extends ChangeNotifier {
   static const _key = 'theme_mode';
-  bool _isDarkMode = true; // Default: Night Mode
+  bool _isDarkMode = false; // Default: tema terang (redesign)
 
   ThemeProvider() {
     _loadTheme();
@@ -14,7 +14,7 @@ class ThemeProvider extends ChangeNotifier {
 
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    _isDarkMode = prefs.getBool(_key) ?? true; // Default dark
+    _isDarkMode = prefs.getBool(_key) ?? false; // Default terang
     notifyListeners();
   }
 

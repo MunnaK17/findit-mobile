@@ -1,5 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/findit_widgets.dart';
 import '../../models/report_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/report_service.dart';
@@ -20,28 +22,47 @@ class ActivityView extends StatelessWidget {
       length: 2,
       child: Scaffold(
         backgroundColor: c.scaffoldBg,
-        appBar: AppBar(
-          backgroundColor: c.scaffoldBg,
-          elevation: 0,
-          title: const Text('Aktivitas'),
-          bottom: TabBar(
-            indicatorColor: c.amberText,
-            indicatorWeight: 3,
-            labelColor: c.amberText,
-            unselectedLabelColor: c.textMuted,
-            dividerColor: c.cardBorder,
-            labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-            tabs: const [
-              Tab(text: 'Laporan Saya'),
-              Tab(text: 'Klaim Saya'),
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                child: Semantics(
+                  header: true,
+                  child: Text('Aktivitas',
+                      style: AppTypography.titleLarge(c.textPrimary)),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TabBar(
+                  indicatorColor: AppColors.brandPrimary,
+                  indicatorWeight: 3,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelColor: c.textPrimary,
+                  unselectedLabelColor: c.textMuted,
+                  dividerColor: c.cardBorder,
+                  labelStyle: AppTypography.bodyMedium(c.textPrimary)
+                      .copyWith(fontWeight: FontWeight.w700, fontSize: 15),
+                  unselectedLabelStyle: AppTypography.bodyMedium(c.textMuted)
+                      .copyWith(fontSize: 15),
+                  tabs: const [
+                    Tab(text: 'Laporan Saya'),
+                    Tab(text: 'Klaim Saya'),
+                  ],
+                ),
+              ),
+              const Expanded(
+                child: TabBarView(
+                  children: [
+                    _MyReportsTab(),
+                    MyClaimsView(embedded: true),
+                  ],
+                ),
+              ),
             ],
           ),
-        ),
-        body: const TabBarView(
-          children: [
-            _MyReportsTab(),
-            MyClaimsView(embedded: true),
-          ],
         ),
       ),
     );
@@ -61,6 +82,7 @@ class _MyReportsTabState extends State<_MyReportsTab>
   bool _isLoading = true;
   bool _loggedIn = true;
   String? _errorMessage;
+  String _status = 'all';
 
   @override
   bool get wantKeepAlive => true;
@@ -68,7 +90,14 @@ class _MyReportsTabState extends State<_MyReportsTab>
   @override
   void initState() {
     super.initState();
+    ReportService.changes.addListener(_load);
     _load();
+  }
+
+  @override
+  void dispose() {
+    ReportService.changes.removeListener(_load);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -89,49 +118,36 @@ class _MyReportsTabState extends State<_MyReportsTab>
     });
   }
 
+  /// Baris waktu di kartu: status verifikasi lalu waktu relatif.
+  String _metaFor(ReportModel r) => switch (r.status) {
+        'pending' => 'Menunggu verifikasi',
+        'approved' when r.isExpired => 'Kedaluwarsa · buka untuk memperpanjang',
+        'approved' => 'Disetujui · ${r.relativeTime}',
+        'completed' => 'Selesai · ${r.relativeTime}',
+        'rejected' => 'Ditolak · ${r.relativeTime}',
+        _ => r.relativeTime,
+      };
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final c = FinditColors.of(context);
 
     if (_isLoading) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(color: AppColors.accentAmber),
-            const SizedBox(height: 12),
-            Text(
-              'Memuat laporan Anda...',
-              style: TextStyle(fontSize: 13, color: c.textMuted),
-            ),
-          ],
-        ),
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.brandPrimary),
       );
     }
 
     if (!_loggedIn) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.lock_outline, size: 48, color: c.textMuted),
-              const SizedBox(height: 12),
-              Text(
-                'Masuk untuk melihat aktivitas Anda',
-                style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginView()),
-                ),
-                child: const Text('Masuk ke Akun'),
-              ),
-            ],
+        child: StateMessage(
+          icon: Icons.lock_outline_rounded,
+          title: 'Masuk untuk melihat aktivitasmu',
+          message: 'Laporan dan klaim yang kamu buat akan tampil di sini.',
+          actionLabel: 'Masuk ke Akun',
+          onAction: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginView()),
           ),
         ),
       );
@@ -139,159 +155,75 @@ class _MyReportsTabState extends State<_MyReportsTab>
 
     if (_errorMessage != null) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.cloud_off_rounded, size: 48, color: c.dangerText),
-              const SizedBox(height: 12),
-              Text(
-                'Gagal Memuat Laporan Saya',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: c.textPrimary),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: c.textMuted),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _load,
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Coba Lagi'),
-              ),
-            ],
-          ),
+        child: StateMessage(
+          icon: Icons.cloud_off_rounded,
+          title: 'Gagal memuat laporan',
+          message: _errorMessage,
+          actionLabel: 'Coba Lagi',
+          onAction: _load,
         ),
       );
     }
 
+    final visible = _status == 'all'
+        ? _reports
+        : _reports.where((r) => r.status == _status).toList();
+
     return RefreshIndicator(
       onRefresh: _load,
-      color: AppColors.accentAmber,
-      backgroundColor: c.cardBg,
-      child: _reports.isEmpty
-          ? ListView(
-              padding: const EdgeInsets.all(40),
-              children: [
-                const SizedBox(height: 60),
-                Icon(Icons.inventory_2_outlined, size: 52, color: c.textMuted),
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    'Belum Ada Laporan',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: c.textPrimary),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    'Laporan barang hilang atau temuan yang Anda buat akan muncul di sini.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: c.textMuted, fontSize: 13, height: 1.4),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Center(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
+      color: AppColors.brandPrimary,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+        children: [
+          FilterPillBar(
+            options: const [
+              ('all', 'Semua'),
+              ('pending', 'Menunggu'),
+              ('approved', 'Disetujui'),
+              ('completed', 'Selesai'),
+            ],
+            selected: _status,
+            onSelected: (key) => setState(() => _status = key),
+          ),
+          const SizedBox(height: 16),
+          if (visible.isEmpty)
+            StateMessage(
+              icon: Icons.inventory_2_outlined,
+              title: _reports.isEmpty ? 'Belum ada laporan' : 'Tidak ada laporan di filter ini',
+              message: _reports.isEmpty
+                  ? 'Laporan barang hilang atau temuan yang kamu buat akan muncul di sini.'
+                  : null,
+              actionLabel: _reports.isEmpty ? 'Buat Laporan Baru' : null,
+              onAction: _reports.isEmpty
+                  ? () async {
                       final created = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(builder: (_) => const CreateReportView()),
                       );
                       if (created == true) _load();
-                    },
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Buat Laporan Baru'),
-                  ),
-                ),
-              ],
+                    }
+                  : null,
             )
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-              itemCount: _reports.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, i) {
-                final r = _reports[i];
-                final typeText = r.isHilang ? c.amberText : c.tealText;
-                final typeBg = r.isHilang ? c.amberBg : c.tealBg;
-                final statusText = c.statusTextColor(r.status);
-                final statusBg = c.statusBgColor(r.status);
-
-                return InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => ReportDetailView(report: r)),
-                    );
-                    _load();
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: c.cardBg,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: c.cardBorder),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: typeBg,
-                          child: Icon(
-                            r.isHilang ? Icons.warning_amber_rounded : Icons.search_rounded,
-                            color: typeText,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                r.namaBarang,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                  color: c.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "${r.isHilang ? 'Hilang' : 'Temuan'} • ${r.campus?.namaKampus.replaceAll('UBSI Kampus ', '') ?? r.lokasi}",
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 12, color: c.textMuted),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: statusBg,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            FinditColors.statusLabel(r.status),
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: statusText,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+          else
+            for (final r in visible) ...[
+              ReportListCard(
+                title: r.namaBarang,
+                location: r.lokasi,
+                meta: _metaFor(r),
+                photoUrl: r.fullFotoUrl,
+                kind: badgeKindFor(isHilang: r.isHilang, status: r.status),
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ReportDetailView(report: r)),
+                  );
+                  _load();
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+        ],
+      ),
     );
   }
 }

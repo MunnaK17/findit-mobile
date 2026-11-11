@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
-import '../../main.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/findit_widgets.dart';
 import '../../services/auth_service.dart';
 import '../main_navigation_view.dart';
 import 'register_view.dart';
@@ -49,9 +50,10 @@ class _LoginViewState extends State<LoginView> {
     if (!mounted) return;
 
     if (res['success'] == true) {
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const MainNavigationView()),
+        (route) => false,
       );
     } else if (res['needs_verification'] == true) {
       Navigator.push(
@@ -69,223 +71,169 @@ class _LoginViewState extends State<LoginView> {
   }
 
   void _continueAsGuest() {
-    Navigator.pushReplacement(
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const MainNavigationView()),
+      (route) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final c = FinditColors.of(context);
-    final themeProvider = context.themeProvider;
 
     return Scaffold(
       backgroundColor: c.scaffoldBg,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(
-              c.isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-              color: c.amberText,
-              size: 20,
-            ),
-            tooltip: c.isDark ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap',
-            onPressed: () => themeProvider.toggleTheme(),
-          ),
-        ],
-      ),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: AppColors.accentAmber,
-                        borderRadius: BorderRadius.circular(18),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: AppColors.space6),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: AppColors.space8 + 8),
+                      const Center(child: CampusLogo(size: 120)),
+                      const SizedBox(height: AppColors.space3),
+                      Text(
+                        'Universitas Bina Sarana Informatika',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.bodyMedium(c.textSecondary),
                       ),
-                      child: const Icon(
-                        Icons.search_rounded,
-                        size: 38,
-                        color: AppColors.slate950,
+                      const SizedBox(height: AppColors.space8 + 8),
+                      Text(
+                        'Masuk ke Akun',
+                        style: AppTypography.titleLarge(c.textPrimary),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Center(
-                    child: RichText(
-                      text: TextSpan(
+                      const SizedBox(height: 4),
+                      Text(
+                        'Layanan lapor barang hilang kampus UBSI.',
+                        style: AppTypography.body(c.textSecondary),
+                      ),
+                      const SizedBox(height: AppColors.space6),
+                      const _FieldLabel('Email atau Username'),
+                      const SizedBox(height: AppColors.space2),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        autofillHints: const [AutofillHints.username],
+                        style: AppTypography.bodyMedium(c.inputText),
+                        decoration: InputDecoration(
+                          hintText: 'nama@bsi.ac.id atau username',
+                        ),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Email atau username wajib diisi';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppColors.space4),
+                      const _FieldLabel('Kata Sandi'),
+                      const SizedBox(height: AppColors.space2),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        textInputAction: TextInputAction.done,
+                        autofillHints: const [AutofillHints.password],
+                        onFieldSubmitted: (_) => _isLoading ? null : _handleLogin(),
+                        style: AppTypography.bodyMedium(c.inputText),
+                        decoration: InputDecoration(
+                          hintText: '••••••••',
+                          suffixIcon: IconButton(
+                            tooltip: _obscurePassword
+                                ? 'Tampilkan kata sandi'
+                                : 'Sembunyikan kata sandi',
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                            onPressed: () =>
+                                setState(() => _obscurePassword = !_obscurePassword),
+                          ),
+                        ),
+                        validator: (val) {
+                          if (val == null || val.isEmpty) return 'Kata sandi wajib diisi';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppColors.space6),
+                      ElevatedButton(
+                        onPressed: _isLoading ? null : _handleLogin,
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.brandOnPrimary,
+                                ),
+                              )
+                            : const Text('Masuk ke Akun'),
+                      ),
+                      const SizedBox(height: AppColors.space3),
+                      OutlinedButton(
+                        onPressed: _isLoading ? null : _continueAsGuest,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: c.textPrimary,
+                          side: BorderSide(color: c.cardBorder),
+                        ),
+                        child: const Text('Masuk Sebagai Tamu'),
+                      ),
+                      const Spacer(),
+                      const SizedBox(height: AppColors.space6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          TextSpan(
-                            text: 'Find.',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              color: c.textPrimary,
-                              letterSpacing: -0.5,
-                            ),
+                          Text(
+                            'Belum punya akun?',
+                            style: AppTypography.body(c.textSecondary),
                           ),
-                          TextSpan(
-                            text: 'It',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              color: c.amberText,
-                              letterSpacing: -0.5,
+                          TextButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const RegisterView()),
                             ),
-                          ),
-                          TextSpan(
-                            text: ' Kampus',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                              color: c.textPrimary,
-                              letterSpacing: -0.5,
+                            style: TextButton.styleFrom(
+                              foregroundColor: c.amberText,
+                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                            ),
+                            child: Text(
+                              'Daftar',
+                              style: AppTypography.label(c.amberText)
+                                  .copyWith(fontSize: 14),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Center(
-                    child: Text(
-                      'Platform Lapor Barang Hilang & Temuan UBSI',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: c.textMuted,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'Email Mahasiswa / Username',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
-                  ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    style: TextStyle(color: c.inputText),
-                    decoration: InputDecoration(
-                      hintText: 'nama@bsi.ac.id atau username',
-                      prefixIcon: Icon(Icons.email_outlined, color: c.inputHint),
-                    ),
-                    validator: (val) {
-                      if (val == null || val.trim().isEmpty) return 'Email atau username wajib diisi';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'Kata Sandi',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
-                  ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    style: TextStyle(color: c.inputText),
-                    decoration: InputDecoration(
-                      hintText: '••••••••',
-                      prefixIcon: Icon(Icons.lock_outline, color: c.inputHint),
-                      suffixIcon: IconButton(
-                        tooltip: _obscurePassword ? 'Tampilkan kata sandi' : 'Sembunyikan kata sandi',
-                        icon: Icon(
-                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                          color: c.inputHint,
-                        ),
-                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                      ),
-                    ),
-                    validator: (val) {
-                      if (val == null || val.isEmpty) return 'Kata sandi wajib diisi';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 28),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accentAmber,
-                      foregroundColor: AppColors.slate950,
-                      minimumSize: const Size.fromHeight(50),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.slate950),
-                          )
-                        : const Text('Masuk ke Akun'),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('Belum punya akun?', style: TextStyle(fontSize: 13, color: c.textMuted)),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const RegisterView()),
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: c.amberText,
-                          minimumSize: const Size(48, 44),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                        ),
-                        child: const Text(
-                          'Daftar Sekarang',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 4),
+                      const Center(child: PoweredByFindit()),
+                      const SizedBox(height: AppColors.space5),
                     ],
                   ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: c.cardBorder)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        child: Text('atau', style: TextStyle(color: c.textMuted, fontSize: 12)),
-                      ),
-                      Expanded(child: Divider(color: c.cardBorder)),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  OutlinedButton.icon(
-                    onPressed: _continueAsGuest,
-                    icon: Icon(Icons.person_outline, color: c.textSecondary),
-                    label: Text('Masuk Sebagai Tamu', style: TextStyle(color: c.textPrimary)),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: c.cardBorder),
-                      minimumSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
         ),
       ),
     );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  final String text;
+  const _FieldLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+    return Text(text, style: AppTypography.label(c.textPrimary));
   }
 }

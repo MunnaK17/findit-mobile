@@ -1,4 +1,4 @@
-﻿import 'campus_model.dart';
+import 'campus_model.dart';
 
 class UserModel {
   final dynamic id;
@@ -11,6 +11,8 @@ class UserModel {
   final int? idCampus;
   final String? prodiUnit;
   final CampusModel? campus;
+  /// profiles.email_notifications: kirim email saat status laporan/klaim berubah.
+  final bool emailNotifications;
 
   UserModel({
     required this.id,
@@ -23,6 +25,7 @@ class UserModel {
     this.idCampus,
     this.prodiUnit,
     this.campus,
+    this.emailNotifications = true,
   });
 
   bool get isAdmin => role == 'admin';
@@ -52,6 +55,7 @@ class UserModel {
       idCampus: json['id_campus'],
       prodiUnit: json['prodi_unit'],
       campus: json['campus'] != null ? CampusModel.fromJson(json['campus']) : null,
+      emailNotifications: json['email_notifications'] ?? true,
     );
   }
 
@@ -67,6 +71,7 @@ class UserModel {
       'id_campus': idCampus,
       'prodi_unit': prodiUnit,
       'campus': campus?.toJson(),
+      'email_notifications': emailNotifications,
     };
   }
 }

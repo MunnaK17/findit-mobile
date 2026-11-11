@@ -1,13 +1,22 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'services/supabase_service.dart';
 import 'views/auth/login_view.dart';
-import 'views/main_navigation_view.dart';
+import 'views/splash/splash_view.dart';
+
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SupabaseService.init();
+  SupabaseService.onSignedOut.listen(
+    (_) => rootNavigatorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginView()),
+      (route) => false,
+    ),
+    onError: (Object e) => debugPrint('Error auth state: $e'),
+  );
   final loggedIn = SupabaseService.isLoggedIn;
   final themeProvider = ThemeProvider();
   runApp(FindITApp(initialLoggedIn: loggedIn, themeProvider: themeProvider));
@@ -32,12 +41,13 @@ class FindITApp extends StatelessWidget {
         return _ThemeScope(
           themeProvider: provider,
           child: MaterialApp(
+            navigatorKey: rootNavigatorKey,
             title: 'FindIT - Lost & Found Kampus',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: provider.themeMode,
-            home: initialLoggedIn ? const MainNavigationView() : const LoginView(),
+            home: SplashView(loggedIn: initialLoggedIn),
           ),
         );
       },

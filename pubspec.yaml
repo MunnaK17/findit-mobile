@@ -16,6 +16,7 @@ dependencies:
   google_fonts: ^6.2.1
   supabase_flutter: ^2.18.3
   url_launcher: ^6.3.3
+  share_plus: ^13.3.1
 
 dev_dependencies:
   flutter_test:
@@ -24,3 +25,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/images/Kampus/

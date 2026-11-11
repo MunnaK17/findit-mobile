@@ -404,7 +404,7 @@ class _RegisterViewState extends State<RegisterView> {
                 ],
                 const SizedBox(height: 16),
                 Text(
-                  'Nomor WhatsApp / HP',
+                  'Nomor Telepon',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: c.textPrimary),
                 ),
                 const SizedBox(height: 6),

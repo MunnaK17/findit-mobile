@@ -1,11 +1,46 @@
-﻿import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/findit_widgets.dart';
 import '../../models/campus_model.dart';
 import '../../models/category_model.dart';
 import '../../models/report_model.dart';
 import '../../services/report_service.dart';
 import '../../services/supabase_service.dart';
+import '../home/widgets/campus_picker_sheet.dart';
 import '../home/widgets/report_card.dart';
+
+/// Rentang tanggal kejadian untuk filter Cari.
+class DateFilter {
+  final String label;
+  final DateTime? from;
+  final DateTime? to;
+  const DateFilter(this.label, {this.from, this.to});
+
+  static const all = DateFilter('Semua Waktu');
+  bool get isAll => from == null && to == null;
+
+  static DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  static List<DateFilter> presets(DateTime now) {
+    final today = _day(now);
+    return [
+      all,
+      DateFilter('Hari ini', from: today, to: today),
+      DateFilter('7 hari terakhir', from: today.subtract(const Duration(days: 6)), to: today),
+      DateFilter('30 hari terakhir', from: today.subtract(const Duration(days: 29)), to: today),
+    ];
+  }
+
+  static DateFilter custom(DateTimeRange r) {
+    const m = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    String f(DateTime d) => '${d.day} ${m[d.month - 1]}';
+    final label = r.start == r.end ? f(r.start) : '${f(r.start)} - ${f(r.end)}';
+    return DateFilter(label, from: _day(r.start), to: _day(r.end));
+  }
+}
 
 class SearchView extends StatefulWidget {
   const SearchView({super.key});
@@ -15,369 +50,385 @@ class SearchView extends StatefulWidget {
 }
 
 class _SearchViewState extends State<SearchView> {
-  final _controller = TextEditingController();
+  static const _pageSize = 20;
 
-  List<ReportModel> _all = [];
+  final _controller = TextEditingController();
+  final _scroll = ScrollController();
+  Timer? _debounce;
+
+  List<ReportModel> _items = [];
   List<CategoryModel> _categories = [];
   List<CampusModel> _campuses = [];
 
-  String _type = 'all';
   int? _categoryId;
-  int? _campusId;
+  CampusModel? _campus;
+  DateFilter _date = DateFilter.all;
+
   bool _isLoading = true;
+  bool _loadingMore = false;
+  bool _hasMore = true;
   String? _errorMessage;
+  int _requestId = 0;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    ReportService.changes.addListener(_reload);
+    _scroll.addListener(_onScroll);
+    _loadOptions();
+    _reload();
   }
 
   @override
   void dispose() {
+    ReportService.changes.removeListener(_reload);
+    _debounce?.cancel();
+    _scroll.dispose();
     _controller.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  Future<void> _loadOptions() async {
     final results = await Future.wait([
-      ReportService.getReports(),
       ReportService.getCategories(),
       ReportService.getCampuses(),
     ]);
     if (!mounted) return;
     setState(() {
-      _all = results[0] as List<ReportModel>;
-      _categories = results[1] as List<CategoryModel>;
-      _campuses = results[2] as List<CampusModel>;
-      if (_all.isEmpty && SupabaseService.lastError != null) {
-        _errorMessage = SupabaseService.lastError;
-      }
+      _categories = results[0] as List<CategoryModel>;
+      _campuses = results[1] as List<CampusModel>;
+    });
+  }
+
+  Future<List<ReportModel>> _fetch(int offset) => ReportService.getReports(
+        search: _controller.text.trim(),
+        categoryId: _categoryId,
+        campusId: _campus?.id,
+        dateFrom: _date.from,
+        dateTo: _date.to,
+        limit: _pageSize,
+        offset: offset,
+      );
+
+  /// Muat ulang dari halaman pertama. Hasil request lama yang telat datang diabaikan.
+  Future<void> _reload() async {
+    final id = ++_requestId;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    final page = await _fetch(0);
+    if (!mounted || id != _requestId) return;
+    setState(() {
+      _items = page;
+      _hasMore = page.length == _pageSize;
+      _errorMessage = page.isEmpty ? SupabaseService.lastError : null;
       _isLoading = false;
     });
   }
 
-  List<ReportModel> get _results {
-    final q = _controller.text.trim().toLowerCase();
-    return _all.where((r) {
-      if (_type == 'hilang' && !r.isHilang) return false;
-      if (_type == 'temuan' && !r.isTemuan) return false;
-      if (_categoryId != null && r.idCategory != _categoryId) return false;
-      if (_campusId != null && r.idCampus != _campusId) return false;
-      if (q.isEmpty) return true;
-      return r.namaBarang.toLowerCase().contains(q) ||
-          r.deskripsi.toLowerCase().contains(q) ||
-          r.lokasi.toLowerCase().contains(q) ||
-          (r.campus?.namaKampus ?? '').toLowerCase().contains(q);
-    }).toList();
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore || _isLoading) return;
+    final id = _requestId;
+    setState(() => _loadingMore = true);
+    final page = await _fetch(_items.length);
+    if (!mounted || id != _requestId) return;
+    setState(() {
+      _loadingMore = false;
+      if (page.isEmpty && SupabaseService.lastError != null) return;
+      _items = [..._items, ...page];
+      _hasMore = page.length == _pageSize;
+    });
   }
 
-  Widget _typeChip(FinditColors c, String value, String label, Color color) {
-    final selected = _type == value;
-    return Expanded(
-      child: Semantics(
-        button: true,
-        selected: selected,
-        label: 'Filter $label',
-        child: InkWell(
-          borderRadius: BorderRadius.circular(10),
-          onTap: () => setState(() => _type = value),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 44),
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-            decoration: BoxDecoration(
-              color: selected ? color : Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 12.5,
-                color: selected
-                    ? (value == 'temuan' ? Colors.white : AppColors.slate950)
-                    : c.textMuted,
-              ),
-            ),
-          ),
-        ),
-      ),
+  void _onScroll() {
+    if (_scroll.position.extentAfter < 400) _loadMore();
+  }
+
+  void _onSearchChanged(String _) {
+    setState(() {});
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), _reload);
+  }
+
+  bool get _hasFilter =>
+      _categoryId != null || _campus != null || !_date.isAll || _controller.text.isNotEmpty;
+
+  void _resetFilters() {
+    _controller.clear();
+    setState(() {
+      _categoryId = null;
+      _campus = null;
+      _date = DateFilter.all;
+    });
+    _reload();
+  }
+
+  Future<void> _pickCampus() async {
+    final result = await showCampusPicker(
+      context,
+      campuses: _campuses,
+      selected: _campus,
     );
+    if (result == null || !mounted) return;
+    setState(() => _campus = result.campus);
+    _reload();
   }
 
-  Widget _filterDropdown<T>({
-    required FinditColors c,
-    required String hint,
-    required IconData icon,
-    required T? value,
-    required List<DropdownMenuItem<T>> items,
-    required ValueChanged<T?> onChanged,
+  Future<T?> _showOptions<T>({
+    required String title,
+    required List<(String, T)> options,
+    required bool Function(T) isSelected,
   }) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 46),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: c.cardBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: value != null ? c.amberText : c.cardBorder,
-        ),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          isExpanded: true,
-          dropdownColor: c.sheetBg,
-          icon: Icon(Icons.arrow_drop_down, color: c.textMuted),
-          style: TextStyle(color: c.textPrimary, fontSize: 12),
-          hint: Row(
+    return showModalBottomSheet<T>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+      builder: (context) {
+        final c = FinditColors.of(context);
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 16, color: c.textMuted),
-              const SizedBox(width: 6),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(title, style: AppTypography.titleMedium(c.textPrimary)),
+              ),
               Flexible(
-                child: Text(
-                  hint,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: c.textMuted, fontSize: 12),
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final (label, value) in options)
+                      ListTile(
+                        minTileHeight: 48,
+                        title: Text(label, style: AppTypography.bodyMedium(c.textPrimary)),
+                        trailing: isSelected(value)
+                            ? Icon(Icons.check_rounded, color: c.amberText)
+                            : null,
+                        selected: isSelected(value),
+                        onTap: () => Navigator.pop(context, value),
+                      ),
+                  ],
                 ),
               ),
             ],
           ),
-          items: items,
-          onChanged: onChanged,
+        );
+      },
+    );
+  }
+
+  Future<void> _pickCategory() async {
+    final picked = await _showOptions<({int? id})>(
+      title: 'Pilih Kategori',
+      options: [
+        ('Semua Kategori', (id: null)),
+        for (final cat in _categories) (cat.namaCategory, (id: cat.id)),
+      ],
+      isSelected: (v) => v.id == _categoryId,
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _categoryId = picked.id);
+    _reload();
+  }
+
+  Future<void> _pickDate() async {
+    const customKey = DateFilter('Pilih tanggal...');
+    final presets = DateFilter.presets(DateTime.now());
+    final picked = await _showOptions<DateFilter>(
+      title: 'Tanggal Kejadian',
+      options: [
+        for (final p in presets) (p.label, p),
+        (customKey.label, customKey),
+      ],
+      isSelected: (v) => v.label == _date.label,
+    );
+    if (picked == null || !mounted) return;
+
+    if (identical(picked, customKey)) {
+      final now = DateTime.now();
+      final range = await showDateRangePicker(
+        context: context,
+        firstDate: DateTime(2023),
+        lastDate: now,
+        initialDateRange: _date.isAll || _date.from == null
+            ? null
+            : DateTimeRange(start: _date.from!, end: _date.to ?? now),
+        helpText: 'Tanggal kejadian',
+        saveText: 'Terapkan',
+      );
+      if (range == null || !mounted) return;
+      setState(() => _date = DateFilter.custom(range));
+    } else {
+      setState(() => _date = picked);
+    }
+    _reload();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+    final categoryLabel = _categoryId == null
+        ? 'Semua Kategori'
+        : _categories
+                .where((k) => k.id == _categoryId)
+                .map((k) => k.namaCategory)
+                .firstOrNull ??
+            'Kategori';
+    final campusLabel = _campus == null
+        ? 'Semua Cabang'
+        : _campus!.namaKampus.replaceAll('UBSI Kampus ', '');
+
+    return Scaffold(
+      backgroundColor: c.scaffoldBg,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+              child: Semantics(
+                header: true,
+                child: Text('Cari Barang', style: AppTypography.titleLarge(c.textPrimary)),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: TextField(
+                controller: _controller,
+                style: AppTypography.bodyMedium(c.inputText),
+                textInputAction: TextInputAction.search,
+                onChanged: _onSearchChanged,
+                onSubmitted: (_) {
+                  _debounce?.cancel();
+                  _reload();
+                },
+                decoration: InputDecoration(
+                  hintText: 'Cari nama barang, lokasi, atau ciri...',
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  suffixIcon: _controller.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Hapus kata kunci',
+                          icon: const Icon(Icons.close_rounded, size: 18),
+                          onPressed: () {
+                            _controller.clear();
+                            _onSearchChanged('');
+                          },
+                        ),
+                ),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  FilterPill(
+                    label: campusLabel,
+                    selected: _campus != null,
+                    trailingIcon: Icons.keyboard_arrow_down_rounded,
+                    onTap: _pickCampus,
+                  ),
+                  const SizedBox(width: 8),
+                  FilterPill(
+                    label: categoryLabel,
+                    selected: _categoryId != null,
+                    trailingIcon: Icons.keyboard_arrow_down_rounded,
+                    onTap: _pickCategory,
+                  ),
+                  const SizedBox(width: 8),
+                  FilterPill(
+                    label: _date.label,
+                    selected: !_date.isAll,
+                    trailingIcon: Icons.keyboard_arrow_down_rounded,
+                    onTap: _pickDate,
+                  ),
+                  if (_hasFilter) ...[
+                    const SizedBox(width: 4),
+                    TextButton(
+                      onPressed: _resetFilters,
+                      style: TextButton.styleFrom(foregroundColor: c.amberText),
+                      child: Text('Reset', style: AppTypography.label(c.amberText)),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (!_isLoading && _errorMessage == null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Text(
+                  _hasMore
+                      ? '${_items.length}+ laporan ditemukan'
+                      : '${_items.length} laporan ditemukan',
+                  style: AppTypography.caption(c.textSecondary),
+                ),
+              ),
+            Expanded(child: _buildResults(c)),
+          ],
         ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final results = _results;
-    final c = FinditColors.of(context);
-
-    return Scaffold(
-      backgroundColor: c.scaffoldBg,
-      appBar: AppBar(
-        backgroundColor: c.scaffoldBg,
-        elevation: 0,
-        title: const Text('Cari Barang'),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
-            child: Semantics(
-              label: 'Kolom pencarian nama barang, lokasi, atau ciri',
-              child: TextField(
-                controller: _controller,
-                style: TextStyle(color: c.inputText, fontSize: 14),
-                onChanged: (_) => setState(() {}),
-                decoration: InputDecoration(
-                  hintText: 'Cari nama barang, lokasi, atau ciri...',
-                  prefixIcon: Icon(Icons.search_rounded, color: c.inputHint),
-                  suffixIcon: _controller.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Hapus kata kunci',
-                          icon: Icon(Icons.clear, size: 18, color: c.inputHint),
-                          onPressed: () => setState(_controller.clear),
-                        ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: c.cardBg,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: c.cardBorder),
-              ),
-              child: Row(
-                children: [
-                  _typeChip(c, 'all', 'Semua', AppColors.accentAmberLight),
-                  _typeChip(c, 'hilang', 'Barang Hilang', AppColors.accentAmber),
-                  _typeChip(c, 'temuan', 'Barang Temuan', AppColors.bsiTeal),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-            child: Row(
+  Widget _buildResults(FinditColors c) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.brandPrimary));
+    }
+    if (_errorMessage != null) {
+      return Center(
+        child: StateMessage(
+          icon: Icons.cloud_off_rounded,
+          title: 'Gagal memuat pencarian',
+          message: _errorMessage,
+          actionLabel: 'Coba Lagi',
+          onAction: _reload,
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _reload,
+      color: AppColors.brandPrimary,
+      child: _items.isEmpty
+          ? ListView(
               children: [
-                Expanded(
-                  child: _filterDropdown<int?>(
-                    c: c,
-                    hint: 'Kategori',
-                    icon: Icons.category_outlined,
-                    value: _categoryId,
-                    items: [
-                      const DropdownMenuItem<int?>(value: null, child: Text('Semua Kategori')),
-                      ..._categories.map(
-                        (cat) => DropdownMenuItem<int?>(
-                          value: cat.id,
-                          child: Text(cat.namaKategori, overflow: TextOverflow.ellipsis),
-                        ),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _categoryId = v),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _filterDropdown<int?>(
-                    c: c,
-                    hint: 'Cabang',
-                    icon: Icons.location_city_rounded,
-                    value: _campusId,
-                    items: [
-                      const DropdownMenuItem<int?>(value: null, child: Text('Semua Cabang')),
-                      ..._campuses.map(
-                        (camp) => DropdownMenuItem<int?>(
-                          value: camp.id,
-                          child: Text(
-                            camp.namaKampus.replaceAll('UBSI Kampus ', ''),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _campusId = v),
-                  ),
+                StateMessage(
+                  icon: Icons.search_off_rounded,
+                  title: 'Tidak ada barang yang cocok',
+                  message: 'Ubah kata kunci atau reset filter cabang, kategori, dan tanggal.',
+                  actionLabel: _hasFilter ? 'Reset Filter' : null,
+                  onAction: _hasFilter ? _resetFilters : null,
                 ),
               ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '${results.length} barang ditemukan',
-                style: TextStyle(fontSize: 12, color: c.textMuted),
-              ),
-            ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const CircularProgressIndicator(color: AppColors.accentAmber),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Memuat daftar laporan...',
-                          style: TextStyle(fontSize: 13, color: c.textMuted),
-                        ),
-                      ],
-                    ),
-                  )
-                : _errorMessage != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.cloud_off_rounded, size: 48, color: c.dangerText),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Gagal Memuat Pencarian',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: c.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                _errorMessage!,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontSize: 13, color: c.textMuted),
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton.icon(
-                                onPressed: _load,
-                                icon: const Icon(Icons.refresh_rounded, size: 18),
-                                label: const Text('Coba Lagi'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _load,
-                        color: AppColors.accentAmber,
-                        backgroundColor: c.cardBg,
-                        child: results.isEmpty
-                            ? ListView(
-                                padding: const EdgeInsets.symmetric(horizontal: 28),
-                                children: [
-                                  const SizedBox(height: 60),
-                                  Icon(Icons.search_off_rounded, size: 52, color: c.textMuted),
-                                  const SizedBox(height: 12),
-                                  Center(
-                                    child: Text(
-                                      'Tidak Ada Barang yang Cocok',
-                                      style: TextStyle(
-                                        color: c.textPrimary,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Center(
-                                    child: Text(
-                                      'Ubah kata kunci atau reset filter kategori dan cabang untuk melihat seluruh laporan.',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: c.textMuted, fontSize: 13, height: 1.4),
-                                    ),
-                                  ),
-                                  if (_type != 'all' || _categoryId != null || _campusId != null || _controller.text.isNotEmpty) ...[
-                                    const SizedBox(height: 16),
-                                    Center(
-                                      child: OutlinedButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _controller.clear();
-                                            _type = 'all';
-                                            _categoryId = null;
-                                            _campusId = null;
-                                          });
-                                        },
-                                        style: OutlinedButton.styleFrom(
-                                          side: BorderSide(color: c.cardBorder),
-                                          foregroundColor: c.textPrimary,
-                                        ),
-                                        child: const Text('Reset Semua Filter'),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              )
-                            : ListView.builder(
-                                padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
-                                itemCount: results.length,
-                                itemBuilder: (_, i) => ReportCard(
-                                  report: results[i],
-                                  isLight: !c.isDark,
-                                ),
-                              ),
+            )
+          : ListView.separated(
+              controller: _scroll,
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+              itemCount: _items.length + (_hasMore ? 1 : 0),
+              separatorBuilder: (_, __) => const SizedBox(height: 16),
+              itemBuilder: (_, i) {
+                if (i == _items.length) {
+                  // Daftar yang terlalu pendek untuk di-scroll tetap memuat halaman berikutnya.
+                  WidgetsBinding.instance.addPostFrameCallback((_) => _loadMore());
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: AppColors.brandPrimary),
                       ),
-          ),
-        ],
-      ),
+                    ),
+                  );
+                }
+                return ReportCard(report: _items[i]);
+              },
+            ),
     );
   }
 }

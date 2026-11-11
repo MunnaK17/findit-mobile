@@ -17,6 +17,8 @@ class ReportModel {
   final String status; // 'pending' | 'approved' | 'rejected' | 'completed'
   final String? adminNotes;
   final String? createdAt;
+  /// Setelah lewat, laporan tidak tampil di daftar publik (pemilik bisa memperpanjang).
+  final DateTime? expiresAt;
   final CategoryModel? category;
   final CampusModel? campus;
   final UserModel? user;
@@ -35,6 +37,7 @@ class ReportModel {
     required this.status,
     this.adminNotes,
     this.createdAt,
+    this.expiresAt,
     this.category,
     this.campus,
     this.user,
@@ -42,7 +45,40 @@ class ReportModel {
 
   bool get isHilang => jenisLaporan == 'hilang';
   bool get isTemuan => jenisLaporan == 'temuan';
-  bool get canBeClaimed => isTemuan && status == 'approved';
+  bool get canBeClaimed => isTemuan && status == 'approved' && !isExpired;
+  bool get isExpired => expiresAt != null && expiresAt!.isBefore(DateTime.now());
+  int? get daysUntilExpiry =>
+      expiresAt?.difference(DateTime.now()).inDays;
+
+  ReportModel copyWith({
+    String? namaBarang,
+    String? deskripsi,
+    String? lokasi,
+    String? tanggalKejadian,
+    String? fotoBarang,
+    String? status,
+    DateTime? expiresAt,
+  }) {
+    return ReportModel(
+      id: id,
+      idUser: idUser,
+      idCategory: idCategory,
+      idCampus: idCampus,
+      jenisLaporan: jenisLaporan,
+      namaBarang: namaBarang ?? this.namaBarang,
+      deskripsi: deskripsi ?? this.deskripsi,
+      lokasi: lokasi ?? this.lokasi,
+      tanggalKejadian: tanggalKejadian ?? this.tanggalKejadian,
+      fotoBarang: fotoBarang ?? this.fotoBarang,
+      status: status ?? this.status,
+      adminNotes: adminNotes,
+      createdAt: createdAt,
+      expiresAt: expiresAt ?? this.expiresAt,
+      category: category,
+      campus: campus,
+      user: user,
+    );
+  }
 
   String get relativeTime {
     final raw = createdAt ?? tanggalKejadian;
@@ -81,6 +117,7 @@ class ReportModel {
       status: json['status'] ?? 'pending',
       adminNotes: json['admin_notes'],
       createdAt: json['created_at']?.toString(),
+      expiresAt: DateTime.tryParse(json['expires_at']?.toString() ?? '')?.toLocal(),
       category: json['category'] != null ? CategoryModel.fromJson(json['category']) : null,
       campus: json['campus'] != null ? CampusModel.fromJson(json['campus']) : null,
       user: json['user'] != null ? UserModel.fromJson(json['user']) : null,

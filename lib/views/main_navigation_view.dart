@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/constants/colors.dart';
+import '../core/theme/app_theme.dart';
 import 'chat/chatbot_view.dart';
 import 'home/home_view.dart';
 import 'reports/create_report_view.dart';
@@ -53,38 +54,28 @@ class _MainNavigationViewState extends State<MainNavigationView> {
         index: _currentIndex,
         children: _pages,
       ),
-      floatingActionButton: Semantics(
-        button: true,
-        label: 'Tanya FindBot Asisten AI',
-        child: Tooltip(
-          message: 'Tanya FindBot',
-          child: Material(
-            color: AppColors.actionBlue,
-            elevation: 6,
-            shape: const CircleBorder(),
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ChatbotView()),
-                );
-              },
-              customBorder: const CircleBorder(),
-              child: Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    width: 1.5,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.support_agent_rounded,
-                  color: Colors.white,
-                  size: 26,
-                ),
+      // FindBot melayang di kanan bawah, di atas navigasi, di semua tab.
+      floatingActionButton: Tooltip(
+        message: 'Tanya FindBot',
+        child: Material(
+          color: AppColors.actionBlue,
+          shape: const CircleBorder(),
+          elevation: 4,
+          shadowColor: AppColors.actionBlue.withValues(alpha: 0.4),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ChatbotView()),
+            ),
+            child: const SizedBox(
+              width: 56,
+              height: 56,
+              child: Icon(
+                Icons.headset_mic_rounded,
+                color: Colors.white,
+                size: 26,
+                semanticLabel: 'Tanya FindBot',
               ),
             ),
           ),
@@ -101,74 +92,61 @@ class _MainNavigationViewState extends State<MainNavigationView> {
               height: 68,
               decoration: BoxDecoration(
                 color: c.navBarBg,
-                border: Border(
-                  top: BorderSide(color: c.navBarBorder, width: 1),
-                ),
+                border: Border(top: BorderSide(color: c.navBarBorder)),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildNavItem(
                     label: 'Beranda',
                     icon: Icons.home_rounded,
                     unselectedIcon: Icons.home_outlined,
-                    isSelected: _currentIndex == 0,
-                    onTap: () => _onItemTapped(0),
+                    index: 0,
                   ),
                   _buildNavItem(
                     label: 'Cari',
                     icon: Icons.search_rounded,
                     unselectedIcon: Icons.search_rounded,
-                    isSelected: _currentIndex == 1,
-                    onTap: () => _onItemTapped(1),
+                    index: 1,
                   ),
-                  const SizedBox(width: 60),
+                  const SizedBox(width: 72),
                   _buildNavItem(
                     label: 'Aktivitas',
                     icon: Icons.receipt_long_rounded,
                     unselectedIcon: Icons.receipt_long_outlined,
-                    isSelected: _currentIndex == 2,
-                    onTap: () => _onItemTapped(2),
+                    index: 2,
                   ),
                   _buildNavItem(
                     label: 'Profil',
                     icon: Icons.person_rounded,
                     unselectedIcon: Icons.person_outline_rounded,
-                    isSelected: _currentIndex == 3,
-                    onTap: () => _onItemTapped(3),
+                    index: 3,
                   ),
                 ],
               ),
             ),
-
-            // Tombol utama pembuatan laporan ditempatkan menonjol di tengah agar dapat dijangkau satu ibu jari.
+            // Tombol buat laporan menonjol di tengah agar terjangkau satu ibu jari.
             Positioned(
-              top: -20,
-              child: Semantics(
-                button: true,
-                label: 'Buat Laporan Barang Baru',
-                child: Tooltip(
-                  message: 'Buat Laporan Baru',
-                  child: Material(
-                    color: AppColors.accentAmber,
-                    shape: CircleBorder(
-                      side: BorderSide(
-                        color: c.navBarFabBorder,
-                        width: 4,
-                      ),
-                    ),
-                    elevation: 4,
-                    child: InkWell(
-                      onTap: _openCreateReport,
-                      customBorder: const CircleBorder(),
-                      child: const SizedBox(
-                        width: 56,
-                        height: 56,
-                        child: Icon(
-                          Icons.add_rounded,
-                          size: 28,
-                          color: AppColors.slate950,
-                        ),
+              top: -26,
+              child: Tooltip(
+                message: 'Buat Laporan Baru',
+                child: Material(
+                  color: AppColors.brandPrimary,
+                  shape: CircleBorder(
+                    side: BorderSide(color: c.navBarFabBorder, width: 4),
+                  ),
+                  elevation: 3,
+                  shadowColor: AppColors.brandPrimary.withValues(alpha: 0.4),
+                  child: InkWell(
+                    onTap: _openCreateReport,
+                    customBorder: const CircleBorder(),
+                    child: const SizedBox(
+                      width: 60,
+                      height: 60,
+                      child: Icon(
+                        Icons.add_rounded,
+                        size: 30,
+                        color: AppColors.brandOnPrimary,
+                        semanticLabel: 'Buat laporan baru',
                       ),
                     ),
                   ),
@@ -185,45 +163,34 @@ class _MainNavigationViewState extends State<MainNavigationView> {
     required String label,
     required IconData icon,
     required IconData unselectedIcon,
-    required bool isSelected,
-    required VoidCallback onTap,
+    required int index,
   }) {
     final c = FinditColors.of(context);
-    final activeColor = c.amberText;
+    final isSelected = _currentIndex == index;
+    final color = isSelected ? c.textPrimary : c.textMuted;
 
-    return Semantics(
-      button: true,
-      selected: isSelected,
-      label: label,
-      child: Tooltip(
-        message: label,
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: isSelected,
+        label: label,
+        excludeSemantics: true,
         child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 64, minHeight: 52),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    isSelected ? icon : unselectedIcon,
-                    size: 22,
-                    color: isSelected ? activeColor : c.textMuted,
+          onTap: () => _onItemTapped(index),
+          child: SizedBox(
+            height: 68,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(isSelected ? icon : unselectedIcon, size: 24, color: color),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: AppTypography.caption(color).copyWith(
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                      color: isSelected ? activeColor : c.textMuted,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

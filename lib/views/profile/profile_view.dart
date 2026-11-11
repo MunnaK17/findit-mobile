@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/constants/colors.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/findit_widgets.dart';
 import '../../main.dart';
-import '../../models/report_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
-import '../../services/report_service.dart';
-import '../../services/supabase_service.dart';
 import '../auth/login_view.dart';
 import '../claims/my_claims_view.dart';
-import '../reports/report_detail_view.dart';
+import '../notifications/notification_bell.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -20,9 +20,6 @@ class ProfileView extends StatefulWidget {
 class _ProfileViewState extends State<ProfileView> {
   UserModel? _user;
   bool _isLoading = true;
-  List<ReportModel> _myReports = [];
-  bool _loadingReports = false;
-  String? _reportsError;
 
   @override
   void initState() {
@@ -37,27 +34,6 @@ class _ProfileViewState extends State<ProfileView> {
       setState(() {
         _user = user;
         _isLoading = false;
-      });
-    }
-
-    if (user != null) {
-      _loadMyReports();
-    }
-  }
-
-  Future<void> _loadMyReports() async {
-    setState(() {
-      _loadingReports = true;
-      _reportsError = null;
-    });
-    final reports = await ReportService.getMyReports();
-    if (mounted) {
-      setState(() {
-        _myReports = reports;
-        if (reports.isEmpty && SupabaseService.lastError != null) {
-          _reportsError = SupabaseService.lastError;
-        }
-        _loadingReports = false;
       });
     }
   }
@@ -160,7 +136,7 @@ class _ProfileViewState extends State<ProfileView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Ubah Nomor HP / WhatsApp',
+                                'Ubah Nomor Telepon',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
@@ -187,7 +163,7 @@ class _ProfileViewState extends State<ProfileView> {
                       autofocus: true,
                       style: TextStyle(color: cs.inputText, fontSize: 15),
                       decoration: InputDecoration(
-                        labelText: 'Nomor WhatsApp / HP',
+                        labelText: 'Nomor Telepon',
                         hintText: 'Contoh: 085891565501',
                         prefixIcon: Icon(Icons.phone_outlined, color: cs.amberText),
                         filled: true,
@@ -195,11 +171,11 @@ class _ProfileViewState extends State<ProfileView> {
                       ),
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
-                          return 'Nomor HP tidak boleh kosong';
+                          return 'Nomor telepon tidak boleh kosong';
                         }
                         final clean = val.trim();
                         if (clean.length < 8) {
-                          return 'Nomor HP minimal 8 karakter';
+                          return 'Nomor telepon minimal 8 karakter';
                         }
                         return null;
                       },
@@ -238,7 +214,7 @@ class _ProfileViewState extends State<ProfileView> {
                                       navigator.pop();
                                       messenger.showSnackBar(
                                         const SnackBar(
-                                          content: Text('Nomor HP berhasil diperbarui'),
+                                          content: Text('Nomor telepon berhasil diperbarui'),
                                           backgroundColor: AppColors.success,
                                         ),
                                       );
@@ -246,7 +222,7 @@ class _ProfileViewState extends State<ProfileView> {
                                     } else {
                                       messenger.showSnackBar(
                                         SnackBar(
-                                          content: Text(res['message'] ?? 'Gagal memperbarui nomor HP'),
+                                          content: Text(res['message'] ?? 'Gagal memperbarui nomor telepon'),
                                           backgroundColor: AppColors.danger,
                                         ),
                                       );
@@ -271,7 +247,7 @@ class _ProfileViewState extends State<ProfileView> {
                                     ),
                                   )
                                 : const Text(
-                                    'Simpan Nomor HP',
+                                    'Simpan Nomor Telepon',
                                     style: TextStyle(fontWeight: FontWeight.w700),
                                   ),
                           ),
@@ -522,568 +498,315 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   Widget build(BuildContext context) {
     final c = FinditColors.of(context);
-    final themeProvider = context.themeProvider;
+    // Header gelap (navy) dengan lembar menu membulat di atasnya.
+    final headerColor = c.isDark ? AppColors.bgHeader : AppColors.textPrimaryLight;
 
     if (_isLoading) {
       return Scaffold(
         backgroundColor: c.scaffoldBg,
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.brandPrimary),
+        ),
+      );
+    }
+
+    final user = _user;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: c.scaffoldBg,
+        // Separuh atas gelap agar tarikan ke bawah di bagian atas tetap menyatu dengan header;
+        // separuh bawah sewarna lembar menu sehingga tidak ada strip gelap di bawah isi yang pendek.
+        body: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [headerColor, headerColor, c.scaffoldBg, c.scaffoldBg],
+              stops: const [0, 0.5, 0.5, 1],
+            ),
+          ),
+          child: ListView(
+            padding: EdgeInsets.zero,
             children: [
-              const CircularProgressIndicator(color: AppColors.accentAmber),
-              const SizedBox(height: 12),
-              Text(
-                'Memuat profil pengguna...',
-                style: TextStyle(fontSize: 13, color: c.textMuted),
+              _buildHeader(headerColor, user),
+              Container(
+                decoration: BoxDecoration(
+                  color: c.scaffoldBg,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppColors.radiusXl),
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 96),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: user == null ? _guestMenu(c) : _userMenu(c, user),
+                ),
               ),
             ],
           ),
-        ),
-      );
-    }
-
-    if (_user == null) {
-      return Scaffold(
-        backgroundColor: c.scaffoldBg,
-        appBar: AppBar(
-          backgroundColor: c.scaffoldBg,
-          title: const Text('Profil Pengguna'),
-          actions: [
-            IconButton(
-              tooltip: c.isDark ? 'Mode Terang' : 'Mode Gelap',
-              icon: Icon(
-                c.isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                color: c.amberText,
-              ),
-              onPressed: () => themeProvider.toggleTheme(),
-            ),
-          ],
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 88,
-                  height: 88,
-                  decoration: BoxDecoration(
-                    color: c.cardBgLight,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: c.cardBorder),
-                  ),
-                  child: Icon(
-                    Icons.account_circle_outlined,
-                    size: 54,
-                    color: c.textMuted,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Anda Masuk Sebagai Tamu',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: c.textPrimary),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Masuk ke akun untuk membuat laporan kehilangan/temuan dan memantau status klaim Anda.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: c.textMuted, fontSize: 13, height: 1.4),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginView()),
-                    );
-                  },
-                  child: const Text('Masuk ke Akun'),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: _showHelpCenterSheet,
-                  icon: Icon(Icons.help_outline_rounded, size: 18, color: c.tealText),
-                  label: Text('Pusat Bantuan & Cara Kerja', style: TextStyle(color: c.textPrimary)),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: c.cardBorder),
-                    minimumSize: const Size(200, 46),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    final roleTextColor = _user!.isStaff
-        ? c.tealText
-        : _user!.isAdmin
-            ? c.adminText
-            : c.amberText;
-    final roleBgColor = _user!.isStaff
-        ? c.tealBg
-        : _user!.isAdmin
-            ? c.adminBg
-            : c.amberBg;
-
-    return Scaffold(
-      backgroundColor: c.scaffoldBg,
-      appBar: AppBar(
-        backgroundColor: c.scaffoldBg,
-        title: const Text('Profil Pengguna'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: IconButton(
-              tooltip: c.isDark ? 'Beralih ke Light Mode' : 'Beralih ke Night Mode',
-              icon: Icon(
-                c.isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                color: c.amberText,
-              ),
-              onPressed: () => themeProvider.toggleTheme(),
-            ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                color: c.cardBg,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: c.cardBorder),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    width: 76,
-                    height: 76,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: c.mintBg,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _user!.name.isNotEmpty ? _user!.name[0].toUpperCase() : 'U',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
-                        color: c.mintText,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    _user!.name,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: c.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _user!.email,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: c.textMuted,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: roleBgColor,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: roleTextColor.withValues(alpha: 0.4),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _user!.isStaff
-                              ? Icons.badge_rounded
-                              : _user!.isAdmin
-                                  ? Icons.admin_panel_settings_rounded
-                                  : Icons.school_rounded,
-                          size: 14,
-                          color: roleTextColor,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _user!.roleLabel,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: roleTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Divider(color: c.cardBorder, height: 1),
-                  const SizedBox(height: 16),
-                  if (_user!.campus != null) ...[
-                    _buildInfoRow(
-                      c: c,
-                      icon: Icons.account_balance_outlined,
-                      label: 'Cabang Kampus',
-                      value: _user!.campus!.namaKampus,
-                      badgeColor: c.tealText,
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                  if (_user!.nip != null && _user!.nip!.isNotEmpty) ...[
-                    _buildInfoRow(
-                      c: c,
-                      icon: Icons.badge_outlined,
-                      label: 'NIP / NIDN',
-                      value: _user!.nip!,
-                    ),
-                    const SizedBox(height: 10),
-                  ] else if (_user!.nim != null && _user!.nim!.isNotEmpty) ...[
-                    _buildInfoRow(
-                      c: c,
-                      icon: Icons.credit_card_outlined,
-                      label: 'NIM',
-                      value: _user!.nim!,
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                  if (_user!.prodiUnit != null && _user!.prodiUnit!.isNotEmpty) ...[
-                    _buildInfoRow(
-                      c: c,
-                      icon: Icons.business_outlined,
-                      label: _user!.isStaff ? 'Unit Kerja / Dept' : 'Program Studi',
-                      value: _user!.prodiUnit!,
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                  _buildInfoRow(
-                    c: c,
-                    icon: Icons.phone_outlined,
-                    label: 'Kontak WhatsApp',
-                    value: (_user!.phone != null && _user!.phone!.isNotEmpty)
-                        ? _user!.phone!
-                        : 'Belum diatur (Ketuk untuk isi)',
-                    trailing: Icon(
-                      Icons.edit_outlined,
-                      size: 16,
-                      color: c.amberText,
-                    ),
-                    onTap: _showEditPhoneDialog,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                color: c.cardBg,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: c.cardBorder),
-              ),
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    secondary: Icon(
-                      c.isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                      color: c.amberText,
-                    ),
-                    title: Text(
-                      c.isDark ? 'Night Mode (Mode Gelap)' : 'Light Mode (Mode Terang)',
-                      style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      c.isDark
-                          ? 'Aktif (Default). Ketuk untuk beralih ke Light Mode'
-                          : 'Aktif. Ketuk untuk beralih ke Night Mode',
-                      style: TextStyle(color: c.textMuted, fontSize: 12),
-                    ),
-                    value: c.isDark,
-                    activeThumbColor: AppColors.accentAmber,
-                    onChanged: (val) => themeProvider.setDarkMode(val),
-                  ),
-                  Divider(height: 1, color: c.cardBorder),
-                  ListTile(
-                    leading: Icon(Icons.inventory_2_outlined, color: c.amberText),
-                    title: Text('Klaim Saya', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600)),
-                    subtitle: Text('Pantau status klaim barang temuan', style: TextStyle(color: c.textMuted, fontSize: 12)),
-                    trailing: Icon(Icons.chevron_right, color: c.textMuted),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const MyClaimsView()),
-                      );
-                    },
-                  ),
-                  Divider(height: 1, color: c.cardBorder),
-                  ListTile(
-                    leading: Icon(Icons.phone_outlined, color: c.amberText),
-                    title: Text('Ubah Nomor HP / WhatsApp', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600)),
-                    subtitle: Text(
-                      _user!.phone?.isNotEmpty == true ? _user!.phone! : 'Atur nomor kontak aktif',
-                      style: TextStyle(fontSize: 12, color: c.textMuted),
-                    ),
-                    trailing: Icon(Icons.chevron_right, color: c.textMuted),
-                    onTap: _showEditPhoneDialog,
-                  ),
-                  Divider(height: 1, color: c.cardBorder),
-                  ListTile(
-                    leading: Icon(Icons.lock_outline_rounded, color: c.amberText),
-                    title: Text('Ganti Kata Sandi', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600)),
-                    subtitle: Text('Perbarui keamanan kata sandi akun', style: TextStyle(fontSize: 12, color: c.textMuted)),
-                    trailing: Icon(Icons.chevron_right, color: c.textMuted),
-                    onTap: _showChangePasswordDialog,
-                  ),
-                  Divider(height: 1, color: c.cardBorder),
-                  ListTile(
-                    leading: Icon(Icons.help_outline_rounded, color: c.tealText),
-                    title: Text('Pusat Bantuan & Cara Kerja', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600)),
-                    subtitle: Text('Panduan lapor, klaim, dan tanya jawab (FAQ)', style: TextStyle(fontSize: 12, color: c.textMuted)),
-                    trailing: Icon(Icons.chevron_right, color: c.textMuted),
-                    onTap: _showHelpCenterSheet,
-                  ),
-                  Divider(height: 1, color: c.cardBorder),
-                  ListTile(
-                    leading: Icon(Icons.logout, color: c.dangerText),
-                    title: Text(
-                      'Keluar dari Akun',
-                      style: TextStyle(color: c.dangerText, fontWeight: FontWeight.w700),
-                    ),
-                    onTap: _handleLogout,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Laporan Saya',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: c.textPrimary,
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Muat ulang laporan saya',
-                    icon: Icon(Icons.refresh, size: 20, color: c.textMuted),
-                    onPressed: _loadMyReports,
-                  ),
-                ],
-              ),
-            ),
-            if (_loadingReports)
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    const CircularProgressIndicator(color: AppColors.accentAmber),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Memuat laporan Anda...',
-                      style: TextStyle(fontSize: 12, color: c.textMuted),
-                    ),
-                  ],
-                ),
-              )
-            else if (_reportsError != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                child: Column(
-                  children: [
-                    Text(
-                      _reportsError!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: c.dangerText, fontSize: 13),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: _loadMyReports,
-                      icon: const Icon(Icons.refresh_rounded, size: 16),
-                      label: const Text('Coba Lagi'),
-                    ),
-                  ],
-                ),
-              )
-            else if (_myReports.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(28),
-                child: Text(
-                  'Anda belum membuat laporan apa pun.',
-                  style: TextStyle(color: c.textMuted, fontSize: 13),
-                ),
-              )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: _myReports.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  final rep = _myReports[index];
-                  final isHilang = rep.isHilang;
-                  final typeText = isHilang ? c.amberText : c.tealText;
-                  final typeBg = isHilang ? c.amberBg : c.tealBg;
-                  final statusText = c.statusTextColor(rep.status);
-                  final statusBg = c.statusBgColor(rep.status);
-
-                  return InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => ReportDetailView(report: rep)),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: c.cardBg,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: c.cardBorder),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: typeBg,
-                            child: Icon(
-                              isHilang ? Icons.warning_amber_rounded : Icons.search_rounded,
-                              color: typeText,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  rep.namaBarang,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14,
-                                    color: c.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  "${isHilang ? 'Hilang' : 'Temuan'} • ${rep.lokasi}",
-                                  style: TextStyle(fontSize: 12, color: c.textMuted),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: statusBg,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              FinditColors.statusLabel(rep.status),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: statusText,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            const SizedBox(height: 36),
-          ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow({
-    required FinditColors c,
-    required IconData icon,
-    required String label,
-    required String value,
-    Color? badgeColor,
-    Widget? trailing,
-    VoidCallback? onTap,
-  }) {
-    final content = Container(
-      constraints: const BoxConstraints(minHeight: 44),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: c.cardBgLight,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: c.cardBorder.withValues(alpha: 0.6)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: badgeColor ?? c.amberText),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: c.textMuted,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const Spacer(),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: badgeColor ?? c.textPrimary,
+  Widget _buildHeader(Color headerColor, UserModel? user) {
+    const onHeader = Colors.white;
+    final initial = (user?.name.isNotEmpty ?? false) ? user!.name[0].toUpperCase() : null;
+    return Container(
+      color: headerColor,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const SizedBox(width: 44),
+                  Expanded(
+                    child: Semantics(
+                      header: true,
+                      child: Text(
+                        'Profil',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.titleSmall(onHeader).copyWith(fontSize: 17),
+                      ),
+                    ),
+                  ),
+                  // Lonceng hanya muncul untuk pengguna login; tetap pertahankan lebarnya.
+                  SizedBox(
+                    width: 44,
+                    child: user == null ? null : const NotificationBell(),
+                  ),
+                ],
               ),
-            ),
+              const SizedBox(height: 24),
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  color: user == null ? Colors.white.withValues(alpha: 0.12) : AppColors.mint,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.24), width: 3),
+                ),
+                alignment: Alignment.center,
+                child: initial == null
+                    ? const Icon(Icons.person_outline_rounded, size: 40, color: onHeader)
+                    : Text(
+                        initial,
+                        style: AppTypography.titleLarge(AppColors.brandOnPrimary),
+                      ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                user?.name ?? 'Tamu',
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.titleMedium(onHeader),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                user == null ? 'Belum masuk ke akun' : '${user.email} · ${user.roleLabel}',
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.caption(Colors.white.withValues(alpha: 0.72)),
+              ),
+              if (user == null) ...[
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginView()),
+                  ),
+                  child: const Text('Masuk ke Akun'),
+                ),
+              ],
+            ],
           ),
-          if (trailing != null) ...[
-            const SizedBox(width: 8),
-            trailing,
-          ],
-        ],
+        ),
       ),
     );
+  }
 
-    if (onTap != null) {
-      return Semantics(
-        button: true,
-        label: '$label: $value. Ketuk untuk mengubah.',
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: content,
+  List<Widget> _guestMenu(FinditColors c) => [
+        _MenuGroup(children: [
+          _MenuRow(
+            icon: Icons.help_outline_rounded,
+            label: 'Pusat Bantuan & Cara Kerja',
+            onTap: _showHelpCenterSheet,
+          ),
+          _buildThemeRow(c),
+        ]),
+        const SizedBox(height: 24),
+        const Center(child: PoweredByFindit()),
+      ];
+
+  List<Widget> _userMenu(FinditColors c, UserModel user) => [
+        _MenuGroup(children: [
+          _MenuRow(
+            icon: Icons.badge_outlined,
+            label: 'Data Diri',
+            onTap: () => _showPersonalDataSheet(user),
+          ),
+        ]),
+        const SizedBox(height: 16),
+        _MenuGroup(children: [
+          _MenuRow(
+            icon: Icons.inventory_2_outlined,
+            label: 'Klaim Saya',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MyClaimsView()),
+            ),
+          ),
+          _MenuRow(
+            icon: Icons.phone_outlined,
+            label: 'Ubah Nomor Telepon',
+            onTap: _showEditPhoneDialog,
+          ),
+          _MenuRow(
+            icon: Icons.lock_outline_rounded,
+            label: 'Ganti Kata Sandi',
+            onTap: _showChangePasswordDialog,
+          ),
+        ]),
+        const SizedBox(height: 16),
+        _MenuGroup(children: [
+          _buildEmailNotifRow(c, user),
+          _buildThemeRow(c),
+          _MenuRow(
+            icon: Icons.help_outline_rounded,
+            label: 'Pusat Bantuan & Cara Kerja',
+            onTap: _showHelpCenterSheet,
+          ),
+        ]),
+        const SizedBox(height: 16),
+        _MenuGroup(children: [
+          _MenuRow(
+            icon: Icons.logout_rounded,
+            label: 'Keluar',
+            onTap: _handleLogout,
+            danger: true,
+          ),
+        ]),
+        const SizedBox(height: 24),
+        const Center(child: PoweredByFindit()),
+      ];
+
+  bool? _emailNotif;
+  bool _savingEmailNotif = false;
+
+  /// Email dikirim ke email login saat laporan/klaim disetujui, ditolak, atau selesai.
+  Widget _buildEmailNotifRow(FinditColors c, UserModel user) {
+    final enabled = _emailNotif ?? user.emailNotifications;
+    Future<void> toggle(bool value) async {
+      if (_savingEmailNotif) return;
+      setState(() {
+        _emailNotif = value;
+        _savingEmailNotif = true;
+      });
+      final res = await AuthService.updateEmailNotifications(value);
+      if (!mounted) return;
+      setState(() {
+        _savingEmailNotif = false;
+        if (res['success'] != true) _emailNotif = !value;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['success'] == true
+              ? (value ? 'Notifikasi email diaktifkan' : 'Notifikasi email dimatikan')
+              : (res['message'] ?? 'Gagal menyimpan pengaturan')),
         ),
       );
     }
-    return content;
+
+    return _MenuRow(
+      icon: Icons.mark_email_unread_outlined,
+      label: 'Notifikasi Email',
+      onTap: () => toggle(!enabled),
+      trailing: Switch(
+        value: enabled,
+        activeThumbColor: AppColors.brandPrimary,
+        onChanged: _savingEmailNotif ? null : toggle,
+      ),
+    );
+  }
+
+  /// Mode gelap tetap tersedia sebagai pilihan; default aplikasi kini terang.
+  Widget _buildThemeRow(FinditColors c) {
+    final themeProvider = context.themeProvider;
+    return _MenuRow(
+      icon: c.isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+      label: 'Mode Gelap',
+      onTap: () => themeProvider.setDarkMode(!c.isDark),
+      trailing: Switch(
+        value: c.isDark,
+        activeThumbColor: AppColors.brandPrimary,
+        onChanged: themeProvider.setDarkMode,
+      ),
+    );
+  }
+
+  /// Data pribadi hanya tampil saat pengguna membukanya sendiri.
+  void _showPersonalDataSheet(UserModel user) {
+    final hasNip = user.nip?.isNotEmpty ?? false;
+    final hasNim = user.nim?.isNotEmpty ?? false;
+    final hasProdi = user.prodiUnit?.isNotEmpty ?? false;
+    final hasPhone = user.phone?.isNotEmpty ?? false;
+
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final c = FinditColors.of(sheetContext);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Data Diri', style: AppTypography.titleMedium(c.textPrimary)),
+                const SizedBox(height: 4),
+                Text(
+                  'Hanya terlihat olehmu.',
+                  style: AppTypography.body(c.textSecondary),
+                ),
+                const SizedBox(height: 8),
+                _ProfileRow(label: 'Email', value: user.email),
+                if (hasNip)
+                  _ProfileRow(label: 'NIP / NIDN', value: user.nip!)
+                else if (hasNim)
+                  _ProfileRow(label: 'NIM', value: user.nim!),
+                if (hasProdi)
+                  _ProfileRow(
+                    label: user.isStaff ? 'Unit Kerja' : 'Program Studi',
+                    value: user.prodiUnit!,
+                  ),
+                if (user.campus != null)
+                  _ProfileRow(label: 'Cabang Kampus', value: user.campus!.namaKampus),
+                _ProfileRow(
+                  label: 'Nomor Telepon',
+                  value: hasPhone ? user.phone! : 'Belum diatur',
+                ),
+                const SizedBox(height: 20),
+                OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(sheetContext);
+                    _showEditPhoneDialog();
+                  },
+                  child: Text(hasPhone ? 'Ubah Nomor Telepon' : 'Atur Nomor Telepon'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showHelpCenterSheet() {
@@ -1182,6 +905,117 @@ class _ProfileViewState extends State<ProfileView> {
           ),
         );
       },
+    );
+  }
+}
+
+class _ProfileRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _ProfileRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+    return Container(
+      constraints: const BoxConstraints(minHeight: 46),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: c.cardBorder)),
+      ),
+      child: Row(
+        children: [
+          Text(label, style: AppTypography.body(c.textSecondary)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.bodyMedium(c.textPrimary)
+                  .copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Kartu pengelompok menu (bg/subtle, sudut 16).
+class _MenuGroup extends StatelessWidget {
+  final List<Widget> children;
+  const _MenuGroup({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+    return Material(
+      color: c.isDark ? c.cardBg : AppColors.bgSubtle,
+      borderRadius: BorderRadius.circular(AppColors.radiusLg),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Column(children: children),
+      ),
+    );
+  }
+}
+
+/// Satu baris menu: ikon dalam lingkaran, label, lalu chevron atau [trailing] (mis. switch).
+class _MenuRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Widget? trailing;
+  final bool danger;
+
+  const _MenuRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.trailing,
+    this.danger = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+    final fg = danger ? c.dangerText : c.textPrimary;
+    return Semantics(
+      button: trailing == null,
+      label: label,
+      excludeSemantics: trailing == null,
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 52),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: danger ? c.dangerBg : c.cardBg,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 18, color: danger ? c.dangerText : c.textSecondary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(label, style: AppTypography.bodyMedium(fg)),
+                ),
+                trailing ??
+                    Icon(Icons.chevron_right_rounded,
+                        color: danger ? c.dangerText : c.iconMuted),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,4 +1,4 @@
-﻿import '../models/user_model.dart';
+import '../models/user_model.dart';
 import 'supabase_service.dart';
 
 class AuthService {
@@ -53,6 +53,10 @@ class AuthService {
 
   static Future<Map<String, dynamic>> updatePassword(String newPassword) async {
     return await SupabaseService.updatePassword(newPassword);
+  }
+
+  static Future<Map<String, dynamic>> updateEmailNotifications(bool enabled) async {
+    return await SupabaseService.updateEmailNotifications(enabled);
   }
 
   static Future<Map<String, dynamic>> updatePhone(String phone) async {

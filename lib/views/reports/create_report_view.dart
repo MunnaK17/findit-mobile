@@ -3,9 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/colors.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/findit_widgets.dart';
 import '../../models/campus_model.dart';
+
 import '../../models/category_model.dart';
 import '../../services/report_service.dart';
+import '../../services/supabase_service.dart';
+import '../auth/login_view.dart';
 
 class CreateReportView extends StatefulWidget {
   final String initialType;
@@ -72,10 +77,8 @@ class _CreateReportViewState extends State<CreateReportView> {
       setState(() {
         _categories = cats;
         _campuses = camps;
-        if (cats.isNotEmpty && _selectedCategoryId == null) {
-          _selectedCategoryId = cats.first.id;
-        }
-        if (camps.isNotEmpty && _selectedCampusId == null) {
+        if (camps.isNotEmpty
+ && _selectedCampusId == null) {
           _selectedCampusId = camps.first.id;
         }
         _isLoadingData = false;
@@ -275,15 +278,36 @@ class _CreateReportViewState extends State<CreateReportView> {
     if (_isLoadingData) {
       return Scaffold(
         backgroundColor: c.scaffoldBg,
-        body: Center(
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.brandPrimary),
+        ),
+      );
+    }
+
+    if (!SupabaseService.isLoggedIn) {
+      return Scaffold(
+        backgroundColor: c.scaffoldBg,
+        body: SafeArea(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(color: AppColors.accentAmber),
-              const SizedBox(height: 12),
-              Text(
-                'Menyiapkan formulir laporan...',
-                style: TextStyle(fontSize: 13, color: c.textMuted),
+              _buildHeader(c),
+              Expanded(
+                child: Center(
+                  child: StateMessage(
+                    icon: Icons.lock_outline_rounded,
+                    title: 'Masuk untuk membuat laporan',
+                    message:
+                        'Laporan barang hilang atau temuan hanya bisa dibuat setelah kamu masuk ke akun.',
+                    actionLabel: 'Masuk ke Akun',
+                    onAction: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginView()),
+                      );
+                      if (mounted) setState(() {});
+                    },
+                  ),
+                ),
               ),
             ],
           ),
@@ -293,301 +317,312 @@ class _CreateReportViewState extends State<CreateReportView> {
 
     return Scaffold(
       backgroundColor: c.scaffoldBg,
-      appBar: AppBar(
-        backgroundColor: c.scaffoldBg,
-        elevation: 0,
-        title: Text('Buat Laporan Baru', style: TextStyle(color: c.textPrimary)),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      body: SafeArea(
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: c.cardBg,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: c.cardBorder),
-                ),
-                child: Row(
+              _buildHeader(c),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                   children: [
-                    Expanded(
-                      child: Semantics(
-                        button: true,
-                        selected: _jenisLaporan == 'hilang',
-                        label: 'Lapor Barang Hilang',
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(10),
-                          onTap: () => setState(() => _jenisLaporan = 'hilang'),
-                          child: Container(
-                            constraints: const BoxConstraints(minHeight: 46),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: _jenisLaporan == 'hilang'
-                                  ? AppColors.accentAmber
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              'Barang Hilang',
-                              style: TextStyle(
-                                color: _jenisLaporan == 'hilang'
-                                    ? AppColors.slate950
-                                    : c.textMuted,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
-                            ),
+                    _TypeSegment(
+                      value: _jenisLaporan,
+                      onChanged: (v) => setState(() => _jenisLaporan = v),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildPhotoPicker(c),
+                    const _Label('Nama Barang'),
+                    TextFormField(
+                      controller: _namaController,
+                      textInputAction: TextInputAction.next,
+                      style: AppTypography.bodyMedium(c.inputText),
+                      decoration: const InputDecoration(
+                        hintText: 'Misal: Kunci Motor Honda, Helm Bogo Hitam...',
+                      ),
+                      validator: (val) => val == null || val.trim().isEmpty
+                          ? 'Nama barang wajib diisi'
+                          : null,
+                    ),
+                    const _Label('Kategori'),
+                    DropdownButtonFormField<int>(
+                      initialValue: _selectedCategoryId,
+                      isExpanded: true,
+                      hint: Text('Pilih kategori barang',
+                          style: AppTypography.body(c.inputHint)),
+                      icon: Icon(Icons.keyboard_arrow_down_rounded, color: c.iconMuted),
+                      style: AppTypography.bodyMedium(c.inputText),
+                      dropdownColor: c.sheetBg,
+                      borderRadius: BorderRadius.circular(AppColors.radiusMd),
+                      items: [
+                        for (final cat in _categories)
+                          DropdownMenuItem(value: cat.id, child: Text(cat.namaKategori)),
+                      ],
+                      onChanged: (val) => setState(() => _selectedCategoryId = val),
+                      validator: (val) => val == null ? 'Pilih kategori barang' : null,
+                    ),
+                    const _Label('Cabang Kampus'),
+                    DropdownButtonFormField<int>(
+                      initialValue: _selectedCampusId,
+                      isExpanded: true,
+                      hint: Text('Pilih cabang kampus',
+                          style: AppTypography.body(c.inputHint)),
+                      icon: Icon(Icons.keyboard_arrow_down_rounded, color: c.iconMuted),
+                      style: AppTypography.bodyMedium(c.inputText),
+                      dropdownColor: c.sheetBg,
+                      borderRadius: BorderRadius.circular(AppColors.radiusMd),
+                      items: [
+                        for (final camp in _campuses)
+                          DropdownMenuItem(
+                            value: camp.id,
+                            child: Text(camp.namaKampus, overflow: TextOverflow.ellipsis),
                           ),
-                        ),
+                      ],
+                      onChanged: (val) => setState(() => _selectedCampusId = val),
+                      validator: (val) => val == null ? 'Pilih cabang kampus' : null,
+                    ),
+                    const _Label('Lokasi'),
+                    TextFormField(
+                      controller: _lokasiController,
+                      textInputAction: TextInputAction.next,
+                      style: AppTypography.bodyMedium(c.inputText),
+                      decoration: const InputDecoration(
+                        hintText: 'Misal: Area Parkir Motor, Lab Komputer 3...',
+                      ),
+                      validator: (val) => val == null || val.trim().isEmpty
+                          ? 'Lokasi wajib diisi'
+                          : null,
+                    ),
+                    const _Label('Tanggal Kejadian'),
+                    TextFormField(
+                      controller: _tanggalController,
+                      readOnly: true,
+                      onTap: _selectDate,
+                      style: AppTypography.bodyMedium(c.inputText),
+                      decoration: const InputDecoration(
+                        suffixIcon: Icon(Icons.calendar_today_outlined, size: 18),
                       ),
                     ),
-                    Expanded(
-                      child: Semantics(
-                        button: true,
-                        selected: _jenisLaporan == 'temuan',
-                        label: 'Lapor Barang Temuan',
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(10),
-                          onTap: () => setState(() => _jenisLaporan = 'temuan'),
-                          child: Container(
-                            constraints: const BoxConstraints(minHeight: 46),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: _jenisLaporan == 'temuan'
-                                  ? AppColors.bsiTeal
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              'Barang Temuan',
-                              style: TextStyle(
-                                color: _jenisLaporan == 'temuan'
-                                    ? Colors.white
-                                    : c.textMuted,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
+                    const _Label('Deskripsi'),
+                    TextFormField(
+                      controller: _deskripsiController,
+                      minLines: 3,
+                      maxLines: 5,
+                      style: AppTypography.bodyMedium(c.inputText),
+                      decoration: const InputDecoration(
+                        hintText:
+                            'Jelaskan ciri detail seperti warna, nomor seri, gantungan kunci, goresan...',
+                        hintMaxLines: 3,
                       ),
+                      validator: (val) => val == null || val.trim().isEmpty
+                          ? 'Deskripsi wajib diisi untuk memudahkan identifikasi'
+                          : null,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              Semantics(
-                button: true,
-                label: 'Unggah foto barang dari kamera atau galeri',
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: _showImageSourceDialog,
-                  child: Container(
-                    height: 180,
-                    decoration: BoxDecoration(
-                      color: c.cardBg,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: c.cardBorder,
-                        style: BorderStyle.solid,
-                      ),
-                    ),
-                    child: _imageFile != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.file(
-                              _imageFile!,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: 180,
-                              semanticLabel: 'Pratinjau foto barang yang dipilih',
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _submitReport,
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: AppColors.brandOnPrimary,
+                              strokeWidth: 2,
                             ),
                           )
-                        : _pickedXFile != null && kIsWeb
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Image.network(
-                                  _pickedXFile!.path,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: 180,
-                                  semanticLabel: 'Pratinjau foto barang yang dipilih',
-                                ),
-                              )
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: c.cardBgLight,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(Icons.add_a_photo_outlined, size: 28, color: c.textMuted),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    'Unggah Foto Barang (Opsional)',
-                                    style: TextStyle(
-                                      color: c.textSecondary,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Format JPG/PNG maks. 5MB',
-                                    style: TextStyle(color: c.textMuted, fontSize: 11),
-                                  ),
-                                ],
-                              ),
+                        : const Text('Kirim Laporan'),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _namaController,
-                style: TextStyle(color: c.inputText, fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Nama Barang *',
-                  hintText: 'Misal: Kunci Motor Honda, Helm Bogo Hitam...',
-                  prefixIcon: Icon(Icons.label_outline, color: c.amberText),
-                  filled: true,
-                  fillColor: c.inputFill,
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Nama barang wajib diisi';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<int>(
-                initialValue: _selectedCampusId,
-                dropdownColor: c.sheetBg,
-                style: TextStyle(color: c.textPrimary, fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Cabang Kampus UBSI *',
-                  prefixIcon: Icon(Icons.apartment_rounded, color: c.tealText),
-                  filled: true,
-                  fillColor: c.inputFill,
-                ),
-                items: _campuses.map((camp) {
-                  return DropdownMenuItem<int>(
-                    value: camp.id,
-                    child: Text(camp.namaKampus, overflow: TextOverflow.ellipsis),
-                  );
-                }).toList(),
-                onChanged: (val) => setState(() => _selectedCampusId = val),
-                validator: (val) => val == null ? 'Pilih cabang kampus' : null,
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<int>(
-                initialValue: _selectedCategoryId,
-                dropdownColor: c.sheetBg,
-                style: TextStyle(color: c.textPrimary, fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Kategori Barang *',
-                  prefixIcon: Icon(Icons.category_outlined, color: c.amberText),
-                  filled: true,
-                  fillColor: c.inputFill,
-                ),
-                items: _categories.map((cat) {
-                  return DropdownMenuItem<int>(
-                    value: cat.id,
-                    child: Text(cat.namaKategori),
-                  );
-                }).toList(),
-                onChanged: (val) => setState(() => _selectedCategoryId = val),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _lokasiController,
-                style: TextStyle(color: c.inputText, fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Lokasi Spesifik *',
-                  hintText: 'Misal: Area Parkir Motor, Lab Komputer 3, Kantin...',
-                  prefixIcon: Icon(Icons.location_on_outlined, color: c.amberText),
-                  filled: true,
-                  fillColor: c.inputFill,
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Lokasi spesifik wajib diisi';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _tanggalController,
-                readOnly: true,
-                onTap: _selectDate,
-                style: TextStyle(color: c.inputText, fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Tanggal Kejadian *',
-                  prefixIcon: Icon(Icons.calendar_today_outlined, color: c.amberText),
-                  suffixIcon: Icon(Icons.arrow_drop_down, color: c.textMuted),
-                  filled: true,
-                  fillColor: c.inputFill,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _deskripsiController,
-                maxLines: 4,
-                style: TextStyle(color: c.inputText, fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Deskripsi / Ciri Khusus *',
-                  hintText: 'Jelaskan ciri detail seperti warna, nomor seri, gantungan kunci, goresan...',
-                  alignLabelWithHint: true,
-                  filled: true,
-                  fillColor: c.inputFill,
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Deskripsi wajib diisi untuk memudahkan identifikasi';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 28),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _submitReport,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _jenisLaporan == 'hilang' ? AppColors.accentAmber : AppColors.bsiTeal,
-                  foregroundColor: _jenisLaporan == 'hilang' ? AppColors.slate950 : Colors.white,
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isLoading
-                    ? SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: _jenisLaporan == 'hilang' ? AppColors.slate950 : Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Text(
-                        "Kirim Laporan ${_jenisLaporan == 'hilang' ? 'Kehilangan' : 'Temuan'}",
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                      ),
-              ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
       ),
     );
   }
+
+  Widget _buildHeader(FinditColors c) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              header: true,
+              child: Text('Buat Laporan Baru',
+                  style: AppTypography.titleMedium(c.textPrimary)),
+            ),
+          ),
+          CircleIconButton(
+            icon: Icons.close_rounded,
+            tooltip: 'Tutup',
+            onPressed: () => Navigator.maybePop(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhotoPicker(FinditColors c) {
+    final hasPhoto = _imageFile != null || (_pickedXFile != null && kIsWeb);
+    final preview = _imageFile != null
+        ? Image.file(_imageFile!,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: 160,
+            semanticLabel: 'Pratinjau foto barang yang dipilih')
+        : _pickedXFile != null && kIsWeb
+            ? Image.network(_pickedXFile!.path,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: 160,
+                semanticLabel: 'Pratinjau foto barang yang dipilih')
+            : null;
+
+    return Semantics(
+      button: true,
+      label: hasPhoto
+          ? 'Ganti foto barang'
+          : 'Unggah foto barang dari kamera atau galeri',
+      excludeSemantics: true,
+      child: Material(
+        color: c.inputFill,
+        borderRadius: BorderRadius.circular(AppColors.radiusLg),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: _showImageSourceDialog,
+          child: CustomPaint(
+            foregroundPainter: hasPhoto ? null : _DashedBorderPainter(c.cardBorder),
+            child: SizedBox(
+              height: 112,
+              width: double.infinity,
+              child: preview ??
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.photo_camera_outlined, size: 24, color: c.iconMuted),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Unggah foto barang dari kamera atau galeri',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.caption(c.textSecondary),
+                      ),
+                    ],
+                  ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Label extends StatelessWidget {
+  final String text;
+  const _Label(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 8),
+      child: Text(text, style: AppTypography.label(c.textPrimary)),
+    );
+  }
+}
+
+/// Kontrol segmen Hilang / Temuan: track bg/muted, segmen aktif putih.
+class _TypeSegment extends StatelessWidget {
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  const _TypeSegment({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FinditColors.of(context);
+    Widget segment(String key, String label) {
+      final selected = value == key;
+      return Expanded(
+        child: Semantics(
+          button: true,
+          selected: selected,
+          excludeSemantics: true,
+          label: label,
+          child: Material(
+            color: selected ? c.cardBg : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppColors.radiusSm + 2),
+            elevation: selected ? 1 : 0,
+            shadowColor: Colors.black26,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppColors.radiusSm + 2),
+              onTap: () => onChanged(key),
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 44),
+                alignment: Alignment.center,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.label(
+                    selected ? c.textPrimary : c.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: c.mutedBg,
+        borderRadius: BorderRadius.circular(AppColors.radiusMd),
+      ),
+      child: Row(
+        children: [
+          segment('hilang', 'Lapor Barang Hilang'),
+          segment('temuan', 'Lapor Barang Temuan'),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  _DashedBorderPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      const Radius.circular(AppColors.radiusLg),
+    ).deflate(0.75);
+    final path = Path()..addRRect(rrect);
+    const dash = 6.0, gap = 5.0;
+    for (final metric in path.computeMetrics()) {
+      var d = 0.0;
+      while (d < metric.length) {
+        canvas.drawPath(metric.extractPath(d, d + dash), paint);
+        d += dash + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter old) => old.color != color;
 }

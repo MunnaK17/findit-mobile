@@ -1,6 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/findit_widgets.dart';
 import '../../models/chat_message_model.dart';
+
 import '../../services/chatbot_service.dart';
 import '../claims/my_claims_view.dart';
 import '../reports/create_report_view.dart';
@@ -19,18 +22,20 @@ class _ChatbotViewState extends State<ChatbotView> {
   bool _isTyping = false;
 
   final List<String> _initialSuggestions = [
-    'Cara lapor barang hilang?',
-    'Cara klaim barang temuan?',
+    'Cara klaim barang',
+    'Buat laporan',
     'Bagaimana verifikasi laporan?',
     'Tips agar barang cepat ketemu',
   ];
+
 
   @override
   void initState() {
     super.initState();
     _messages.add(
       ChatMessageModel(
-        text: 'Halo! Saya FindBot, asisten panduan FindIT Kampus.\nAda yang bisa saya bantu terkait barang hilang atau temuan di kampus?',
+        text: 'Halo! Saya FindBot 👋 Ada barang yang hilang atau kamu temukan di kampus?',
+
         isUser: false,
         timestamp: DateTime.now(),
         quickReplies: _initialSuggestions,
@@ -107,235 +112,204 @@ class _ChatbotViewState extends State<ChatbotView> {
   @override
   Widget build(BuildContext context) {
     final c = FinditColors.of(context);
+    final quickReplies = _messages.isNotEmpty && !_isTyping
+        ? _messages.last.quickReplies
+        : const <String>[];
 
     return Scaffold(
       backgroundColor: c.scaffoldBg,
-      appBar: AppBar(
-        backgroundColor: c.scaffoldBg,
-        elevation: 0,
-        title: Row(
+      body: SafeArea(
+        child: Column(
           children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: c.tealBg,
-                border: Border.all(color: c.tealText.withValues(alpha: 0.4)),
-              ),
-              child: Icon(Icons.support_agent_rounded, color: c.tealText, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'FindBot Assistant',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: c.textPrimary),
-                ),
-                Text(
-                  'Asisten Panduan Lost & Found UBSI',
-                  style: TextStyle(fontSize: 11, color: c.textMuted),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return _buildMessageItem(c, msg);
-              },
-            ),
-          ),
-          if (_isTyping)
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: c.cardBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: c.cardBorder),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  CircleIconButton(
+                    icon: Icons.arrow_back_rounded,
+                    tooltip: 'Kembali',
+                    onPressed: () => Navigator.maybePop(context),
+                  ),
+                  const SizedBox(width: 12),
+                  const _BotAvatar(size: 44),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accentAmber),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Menyiapkan jawaban panduan...',
-                          style: TextStyle(fontSize: 12, color: c.textMuted),
-                        ),
+                        Text('FindBot', style: AppTypography.titleSmall(c.textPrimary)),
+                        Text('Asisten AI FindIT',
+                            style: AppTypography.caption(c.successText)),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-          if (_messages.isNotEmpty && _messages.last.quickReplies.isNotEmpty && !_isTyping)
-            Container(
-              height: 46,
-              margin: const EdgeInsets.only(bottom: 6),
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _messages.last.quickReplies.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (context, idx) {
-                  final text = _messages.last.quickReplies[idx];
-                  return ActionChip(
-                    backgroundColor: c.chipBg,
-                    side: BorderSide(color: c.chipBorder),
-                    label: Text(
-                      text,
-                      style: TextStyle(fontSize: 12, color: c.textPrimary, fontWeight: FontWeight.w600),
-                    ),
-                    onPressed: () => _sendMessage(text),
-                  );
+            Divider(height: 1, color: c.cardBorder),
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                itemCount: _messages.length + (_isTyping ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == _messages.length) return _buildTyping(c);
+                  return _buildMessageItem(c, _messages[index]);
                 },
               ),
             ),
-          Container(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 16),
-            decoration: BoxDecoration(
-              color: c.cardBg,
-              border: Border(top: BorderSide(color: c.cardBorder)),
-            ),
-            child: SafeArea(
+            if (quickReplies.isNotEmpty)
+              SizedBox(
+                height: 48,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: quickReplies.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, idx) => FilterPill(
+                    label: quickReplies[idx],
+                    selected: false,
+                    onTap: () => _sendMessage(quickReplies[idx]),
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: Row(
                 children: [
                   Expanded(
-                    child: Semantics(
-                      label: 'Ketik pertanyaan seputar barang hilang atau temuan',
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: c.inputFill,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: c.inputBorder),
-                        ),
-                        child: TextField(
-                          controller: _textController,
-                          style: TextStyle(color: c.inputText, fontSize: 14),
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: _sendMessage,
-                          decoration: InputDecoration(
-                            hintText: 'Tanyakan sesuatu seputar barang hilang...',
-                            hintStyle: TextStyle(color: c.inputHint, fontSize: 13),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
+                    child: TextField(
+                      controller: _textController,
+                      style: AppTypography.bodyMedium(c.inputText),
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: _sendMessage,
+                      decoration: const InputDecoration(
+                        hintText: 'Tanyakan sesuatu seputar barang hilang...',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: 'Kirim pesan',
+                    child: Material(
+                      color: AppColors.brandPrimary,
+                      borderRadius: BorderRadius.circular(AppColors.radiusMd),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(AppColors.radiusMd),
+                        onTap: _isTyping ? null : () => _sendMessage(_textController.text),
+                        child: const SizedBox(
+                          width: 52,
+                          height: 52,
+                          child: Icon(
+                            Icons.send_outlined,
+                            color: AppColors.brandOnPrimary,
+                            size: 22,
+                            semanticLabel: 'Kirim pesan',
                           ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: AppColors.accentAmber,
-                    ),
-                    child: IconButton(
-                      tooltip: 'Kirim pesan',
-                      icon: const Icon(Icons.send_rounded, color: AppColors.slate950, size: 20),
-                      onPressed: () => _sendMessage(_textController.text),
-                    ),
-                  ),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
+  Widget _buildTyping(FinditColors c) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: _botBubble(c),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: AppColors.brandPrimary),
+            ),
+            const SizedBox(width: 8),
+            Text('FindBot sedang mengetik...',
+                style: AppTypography.caption(c.textSecondary)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  BoxDecoration _botBubble(FinditColors c) => BoxDecoration(
+        color: c.isDark ? c.cardBg : AppColors.bgSubtle,
+        borderRadius: BorderRadius.circular(AppColors.radiusLg),
+        border: Border.all(color: c.cardBorder),
+      );
+
   Widget _buildMessageItem(FinditColors c, ChatMessageModel msg) {
     final isUser = msg.isUser;
+    final maxWidth = MediaQuery.of(context).size.width * 0.75;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (!isUser) ...[
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: c.tealBg,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.support_agent_rounded, color: c.tealText, size: 16),
-                ),
-                const SizedBox(width: 8),
-              ],
-              Flexible(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isUser ? AppColors.accentAmber : c.cardBg,
-                    borderRadius: BorderRadius.circular(16).copyWith(
-                      bottomRight: isUser ? const Radius.circular(4) : const Radius.circular(16),
-                      bottomLeft: !isUser ? const Radius.circular(4) : const Radius.circular(16),
-                    ),
-                    border: isUser ? null : Border.all(color: c.cardBorder),
-                  ),
-                  child: Text(
-                    msg.text,
-                    style: TextStyle(
-                      color: isUser ? AppColors.slate950 : c.textPrimary,
-                      fontSize: 13.5,
-                      height: 1.45,
-                      fontWeight: isUser ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                  ),
-                ),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: isUser
+                  ? BoxDecoration(
+                      color: c.textPrimary,
+                      borderRadius: BorderRadius.circular(AppColors.radiusLg),
+                    )
+                  : _botBubble(c),
+              child: Text(
+                msg.text,
+                style: AppTypography.body(isUser ? c.scaffoldBg : c.textPrimary),
               ),
-            ],
+            ),
           ),
           if (msg.action != null) ...[
             const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.only(left: 38),
-              child: ElevatedButton.icon(
-                onPressed: () => _handleAction(msg.action!),
-                icon: const Icon(Icons.open_in_new_rounded, size: 15),
-                label: Text(msg.action!.label),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.bsiTeal,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(120, 44),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
+            OutlinedButton.icon(
+              onPressed: () => _handleAction(msg.action!),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+              label: Text(msg.action!.label),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: c.blueText,
+                minimumSize: const Size(44, 44),
+                side: BorderSide(color: c.cardBorder),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
               ),
             ),
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Avatar FindBot: lingkaran biru dengan ikon headset.
+class _BotAvatar extends StatelessWidget {
+  final double size;
+  const _BotAvatar({required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        color: AppColors.actionBlue,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(Icons.headset_mic_rounded, color: Colors.white, size: size * 0.5),
     );
   }
 }

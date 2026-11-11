@@ -26,6 +26,10 @@ class SupabaseService {
 
   static bool get isLoggedIn => client.auth.currentUser != null;
 
+  /// Terpicu saat sesi berakhir, baik karena logout maupun token yang tidak bisa diperbarui lagi.
+  static Stream<AuthState> get onSignedOut => client.auth.onAuthStateChange
+      .where((state) => state.event == AuthChangeEvent.signedOut);
+
   static Future<Map<String, dynamic>> login(String email, String password) async {
     final cleanEmail = email.trim().toLowerCase();
     try {
@@ -214,6 +218,22 @@ class SupabaseService {
     }
   }
 
+  static Future<Map<String, dynamic>> updateEmailNotifications(bool enabled) async {
+    final user = client.auth.currentUser;
+    if (user == null) {
+      return {'success': false, 'message': 'Sesi login tidak ditemukan'};
+    }
+    try {
+      await client
+          .from('profiles')
+          .update({'email_notifications': enabled})
+          .eq('id', user.id);
+      return {'success': true};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal menyimpan pengaturan notifikasi: $e'};
+    }
+  }
+
   static Future<Map<String, dynamic>> updatePhone(String phone) async {
     final user = client.auth.currentUser;
     if (user == null) {
@@ -231,9 +251,9 @@ class SupabaseService {
         );
       } catch (_) {}
 
-      return {'success': true, 'message': 'Nomor HP berhasil disimpan'};
+      return {'success': true, 'message': 'Nomor telepon berhasil disimpan'};
     } catch (e) {
-      return {'success': false, 'message': 'Gagal memperbarui nomor HP: $e'};
+      return {'success': false, 'message': 'Gagal memperbarui nomor telepon: $e'};
     }
   }
 
@@ -269,6 +289,10 @@ class SupabaseService {
     String? search,
     int? categoryId,
     int? campusId,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+    int? limit,
+    int offset = 0,
   }) async {
     try {
       lastError = null;
@@ -277,7 +301,9 @@ class SupabaseService {
         campus:campuses(*),
         category:categories(*),
         user:public_profiles(*)
-      ''').inFilter('status', ['approved', 'completed']);
+      ''')
+          .inFilter('status', ['approved', 'completed'])
+          .gt('expires_at', DateTime.now().toUtc().toIso8601String());
 
       if (jenis != null) {
         query = query.eq('jenis_laporan', jenis);
@@ -293,8 +319,17 @@ class SupabaseService {
         final pattern = '"%${search.replaceAll(r'\', r'\\').replaceAll('"', r'\"')}%"';
         query = query.or('nama_barang.ilike.$pattern,deskripsi.ilike.$pattern,lokasi.ilike.$pattern');
       }
+      if (dateFrom != null) {
+        query = query.gte('tanggal_kejadian', _isoDate(dateFrom));
+      }
+      if (dateTo != null) {
+        query = query.lte('tanggal_kejadian', _isoDate(dateTo));
+      }
 
-      final data = await query.order('created_at', ascending: false);
+      final ordered = query.order('created_at', ascending: false);
+      final data = limit == null
+          ? await ordered
+          : await ordered.range(offset, offset + limit - 1);
       return (data as List).map((e) => ReportModel.fromJson(e)).toList();
     } catch (e) {
       debugPrint("Error getReports: $e");
@@ -320,6 +355,49 @@ class SupabaseService {
       debugPrint("Error getMyReports: $e");
       lastError = 'Gagal memuat riwayat laporan Anda. Silakan coba lagi.';
       return [];
+    }
+  }
+
+  static String _isoDate(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  /// Unggah foto barang ke bucket reports. Mengembalikan URL publik, atau null bila gagal.
+  static Future<String?> _uploadReportPhoto(Uint8List bytes, String? fileName) async {
+    final user = client.auth.currentUser;
+    if (user == null || bytes.isEmpty) return null;
+    final rawExt = (fileName != null && fileName.contains('.')) ? fileName.split('.').last : 'jpg';
+    final cleanExt = rawExt.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    final safeExt = (cleanExt == 'png' || cleanExt == 'webp' || cleanExt == 'gif') ? cleanExt : 'jpg';
+    final mimeType = safeExt == 'png'
+        ? 'image/png'
+        : (safeExt == 'webp' ? 'image/webp' : (safeExt == 'gif' ? 'image/gif' : 'image/jpeg'));
+    // Nama file unik per user dan milidetik, jadi upload baru tidak perlu upsert (cukup policy INSERT).
+    final path = "reports/${DateTime.now().millisecondsSinceEpoch}_${user.id}.$safeExt";
+    try {
+      await client.storage.from(SupabaseConstants.reportsBucket).uploadBinary(
+            path,
+            bytes,
+            fileOptions: FileOptions(contentType: mimeType),
+          );
+      return client.storage.from(SupabaseConstants.reportsBucket).getPublicUrl(path);
+    } catch (e) {
+      debugPrint("Failed upload image to Supabase: $e");
+      return null;
+    }
+  }
+
+  /// Hapus file foto lama milik pengguna (best effort; policy delete hanya untuk pemilik file).
+  static Future<void> _deleteReportPhoto(String? publicUrl) async {
+    if (publicUrl == null) return;
+    final marker = '/object/public/${SupabaseConstants.reportsBucket}/';
+    final i = publicUrl.indexOf(marker);
+    if (i < 0) return;
+    try {
+      await client.storage
+          .from(SupabaseConstants.reportsBucket)
+          .remove([publicUrl.substring(i + marker.length)]);
+    } catch (e) {
+      debugPrint("Gagal menghapus foto lama: $e");
     }
   }
 
@@ -370,31 +448,10 @@ class SupabaseService {
       }
 
       if (bytesToUpload != null && bytesToUpload.isNotEmpty) {
-        final cleanExt = rawExt.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-        final safeExt = (cleanExt == 'png' || cleanExt == 'webp' || cleanExt == 'gif')
-            ? cleanExt
-            : 'jpg';
-        final mimeType = safeExt == 'png'
-            ? 'image/png'
-            : (safeExt == 'webp' ? 'image/webp' : (safeExt == 'gif' ? 'image/gif' : 'image/jpeg'));
-
-        // Nama file unik per user dan milidetik, jadi upload baru tidak perlu upsert (cukup policy INSERT).
-        final fileName = "${DateTime.now().millisecondsSinceEpoch}_${user.id}.$safeExt";
-        final path = "reports/$fileName";
-
-        try {
-          await client.storage.from(SupabaseConstants.reportsBucket).uploadBinary(
-                path,
-                bytesToUpload,
-                fileOptions: FileOptions(contentType: mimeType),
-              );
-          photoUrl = client.storage.from(SupabaseConstants.reportsBucket).getPublicUrl(path);
-        } catch (e) {
-          debugPrint("Failed upload image to Supabase: $e");
-        }
+        photoUrl = await _uploadReportPhoto(bytesToUpload, 'foto.$rawExt');
       }
 
-      // Foto tidak bisa ditambahkan setelah laporan dibuat, jadi laporan tidak disimpan tanpa foto yang dipilih.
+      // Laporan tidak disimpan tanpa foto yang sudah dipilih pengguna.
       if (hasPhoto && photoUrl == null) {
         return {
           'success': false,
@@ -434,10 +491,22 @@ class SupabaseService {
     required String tanggalKejadian,
     int? categoryId,
     int? campusId,
+    bool requireReverification = false,
+    Uint8List? newPhotoBytes,
+    String? newPhotoName,
+    String? oldPhotoUrl,
   }) async {
     final user = client.auth.currentUser;
     if (user == null) {
       return {'success': false, 'message': 'Silakan login terlebih dahulu'};
+    }
+
+    String? newPhotoUrl;
+    if (newPhotoBytes != null && newPhotoBytes.isNotEmpty) {
+      newPhotoUrl = await _uploadReportPhoto(newPhotoBytes, newPhotoName);
+      if (newPhotoUrl == null) {
+        return {'success': false, 'message': 'Foto baru gagal diunggah. Perubahan belum disimpan.'};
+      }
     }
 
     try {
@@ -449,11 +518,20 @@ class SupabaseService {
       };
       if (categoryId != null) updateData['id_category'] = categoryId;
       if (campusId != null) updateData['id_campus'] = campusId;
+      if (requireReverification) updateData['status'] = 'pending';
+      if (newPhotoUrl != null) updateData['foto_barang'] = newPhotoUrl;
 
-      await client.from('reports').update(updateData).eq('id', id);
-      return {'success': true, 'message': 'Laporan berhasil diperbarui'};
+      // RLS menolak update tanpa error (0 baris), jadi hasilnya harus diperiksa.
+      final updated = await client.from('reports').update(updateData).eq('id', id).select('id');
+      if (updated.isEmpty) {
+        await _deleteReportPhoto(newPhotoUrl);
+        return {'success': false, 'message': 'Laporan tidak dapat diperbarui.'};
+      }
+      if (newPhotoUrl != null) await _deleteReportPhoto(oldPhotoUrl);
+      return {'success': true, 'message': 'Laporan berhasil diperbarui', 'foto_barang': newPhotoUrl};
     } catch (e) {
       debugPrint("Error updateReport: $e");
+      await _deleteReportPhoto(newPhotoUrl);
       return {'success': false, 'message': 'Gagal memperbarui laporan: $e'};
     }
   }
@@ -477,6 +555,23 @@ class SupabaseService {
     }
   }
 
+  static Future<Map<String, dynamic>> extendReport(int id) async {
+    if (client.auth.currentUser == null) {
+      return {'success': false, 'message': 'Silakan login terlebih dahulu'};
+    }
+    try {
+      final res = await client.rpc('extend_report', params: {'p_report_id': id});
+      final newExpiry = DateTime.tryParse(res?.toString() ?? '')?.toLocal();
+      if (newExpiry == null) {
+        return {'success': false, 'message': 'Hanya laporan terverifikasi milik Anda yang dapat diperpanjang.'};
+      }
+      return {'success': true, 'expires_at': newExpiry};
+    } catch (e) {
+      debugPrint("Error extendReport: $e");
+      return {'success': false, 'message': 'Gagal memperpanjang laporan: $e'};
+    }
+  }
+
   static Future<Map<String, dynamic>> deleteReport(int id) async {
     final user = client.auth.currentUser;
     if (user == null) {
@@ -484,7 +579,11 @@ class SupabaseService {
     }
 
     try {
-      await client.from('reports').delete().eq('id', id);
+      // RLS menolak delete tanpa error (0 baris), jadi hasilnya harus diperiksa.
+      final deleted = await client.from('reports').delete().eq('id', id).select('id');
+      if (deleted.isEmpty) {
+        return {'success': false, 'message': 'Laporan ini tidak dapat dihapus.'};
+      }
       return {'success': true, 'message': 'Laporan berhasil dihapus'};
     } catch (e) {
       debugPrint("Error deleteReport: $e");
@@ -523,9 +622,9 @@ class SupabaseService {
           .eq('id_report', reportId)
           .eq('id_user', user.id)
           .neq('status_klaim', 'rejected')
-          .maybeSingle();
+          .limit(1);
 
-      return res != null;
+      return res.isNotEmpty;
     } catch (e) {
       debugPrint("Error checking hasClaimed: $e");
       return false;
@@ -564,9 +663,9 @@ class SupabaseService {
           .eq('id_report', reportId)
           .eq('id_user', user.id)
           .neq('status_klaim', 'rejected')
-          .maybeSingle();
+          .limit(1);
 
-      if (existingClaim != null) {
+      if (existingClaim.isNotEmpty) {
         return {
           'success': false,
           'message': 'Anda sudah pernah mengajukan klaim untuk barang ini.',
@@ -582,6 +681,16 @@ class SupabaseService {
       }).select().single();
 
       return {'success': true, 'data': res, 'message': 'Klaim berhasil diajukan'};
+    } on PostgrestException catch (e) {
+      debugPrint("Error createClaim: $e");
+      // 23505: unique_violation, klaim kedua lolos pemeriksaan di atas karena dikirim bersamaan.
+      if (e.code == '23505') {
+        return {
+          'success': false,
+          'message': 'Anda sudah pernah mengajukan klaim untuk barang ini.',
+        };
+      }
+      return {'success': false, 'message': 'Gagal mengajukan klaim: ${e.message}'};
     } catch (e) {
       debugPrint("Error createClaim: $e");
       return {'success': false, 'message': 'Gagal mengajukan klaim: $e'};
